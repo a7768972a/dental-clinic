@@ -1,0 +1,312 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 3.9%;
+  --primary: 43 74% 49%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 96.1%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96.1%;
+  --muted-foreground: 0 0% 45.1%;
+  --accent: 43 74% 90%;
+  --accent-foreground: 0 0% 9%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 89.8%;
+  --input: 0 0% 89.8%;
+  --ring: 43 74% 49%;
+  --radius: 0.75rem;
+  
+  /* Chart colors */
+  --chart-1: 43 74% 49%;
+  --chart-2: 0 0% 45.1%;
+  --chart-3: 0 84.2% 60.2%;
+  --chart-4: 142 76% 36%;
+  --chart-5: 199 89% 48%;
+  
+  /* Dental colors */
+  --tooth-healthy: 0 0% 98%;
+  --tooth-decay: 0 84.2% 60.2%;
+  --tooth-filling: 199 89% 48%;
+  --tooth-implant: 43 74% 49%;
+  --tooth-extracted: 0 0% 45.1%;
+  --tooth-crown: 271 91% 65%;
+  
+  /* Gold theme */
+  --gold-primary: #D4AF37;
+  --gold-light: #F4E4BC;
+  --gold-dark: #B8960C;
+}
+
+.dark {
+  --background: 0 0% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 43 74% 49%;
+  --primary-foreground: 0 0% 9%;
+  --secondary: 0 0% 14.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 14.9%;
+  --muted-foreground: 0 0% 63.9%;
+  --accent: 0 0% 14.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 14.9%;
+  --input: 0 0% 14.9%;
+  --ring: 43 74% 49%;
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* RTL Support */
+html {
+  direction: rtl;
+}
+
+html[dir="ltr"] {
+  direction: ltr;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.8);
+}
+
+/* FullCalendar RTL */
+.fc {
+  direction: rtl;
+  text-align: right;
+}
+
+.fc .fc-toolbar > * > :first-child {
+  margin-left: 0.75em;
+  margin-right: 0;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border: 1px solid hsl(var(--border));
+}
+
+.fc-theme-standard .fc-scrollgrid {
+  border: 1px solid hsl(var(--border));
+}
+
+.fc .fc-button-primary {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.fc .fc-button-primary:hover {
+  background-color: hsl(var(--primary) / 0.9);
+  border-color: hsl(var(--primary) / 0.9);
+}
+
+.fc .fc-button-primary:disabled {
+  background-color: hsl(var(--muted));
+  border-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background-color: hsl(var(--primary) / 0.8);
+  border-color: hsl(var(--primary) / 0.8);
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: hsl(var(--accent) / 0.3);
+}
+
+.fc-event {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.fc-event:hover {
+  background-color: hsl(var(--primary) / 0.9);
+}
+
+/* Gold gradient background for sidebar */
+.gold-gradient {
+  background: linear-gradient(180deg, #D4AF37 0%, #B8960C 100%);
+}
+
+/* Tooth styles */
+.tooth {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tooth:hover {
+  filter: brightness(0.9);
+  transform: scale(1.02);
+}
+
+.tooth-healthy {
+  fill: hsl(var(--tooth-healthy));
+  stroke: #ccc;
+}
+
+.tooth-decay {
+  fill: hsl(var(--tooth-decay));
+  stroke: #dc2626;
+}
+
+.tooth-filling {
+  fill: hsl(var(--tooth-filling));
+  stroke: #0284c7;
+}
+
+.tooth-implant {
+  fill: hsl(var(--tooth-implant));
+  stroke: #D4AF37;
+}
+
+.tooth-extracted {
+  fill: hsl(var(--tooth-extracted));
+  stroke: #6b7280;
+}
+
+.tooth-crown {
+  fill: hsl(var(--tooth-crown));
+  stroke: #a855f7;
+}
+
+/* Animation classes */
+@keyframes pulse-gold {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(212, 175, 55, 0);
+  }
+}
+
+.pulse-gold {
+  animation: pulse-gold 2s infinite;
+}
+
+/* Queue status indicators */
+.queue-status-arrived {
+  background-color: hsl(142 76% 36% / 0.1);
+  color: hsl(142 76% 36%);
+}
+
+.queue-status-waiting {
+  background-color: hsl(43 74% 49% / 0.2);
+  color: hsl(43 74% 35%);
+}
+
+.queue-status-with-doctor {
+  background-color: hsl(199 89% 48% / 0.1);
+  color: hsl(199 89% 35%);
+}
+
+.queue-status-completed {
+  background-color: hsl(0 0% 45.1% / 0.1);
+  color: hsl(0 0% 45.1%);
+}
+
+/* Notification badge */
+.notification-badge {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 18px;
+  height: 18px;
+  background: hsl(var(--destructive));
+  color: white;
+  border-radius: 50%;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(212, 175, 55, 0.15);
+}
+
+/* Button styles */
+.btn-gold {
+  background: linear-gradient(135deg, #D4AF37 0%, #B8960C 100%);
+  color: white;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, #F4E4BC 0%, #D4AF37 100%);
+  color: #1a1a1a;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

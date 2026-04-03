@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+  
+  <!-- Tooth shape - main body -->
+  <path d="M50 15 
+           C35 15 25 25 25 40
+           C25 50 28 60 32 70
+           C35 77 38 82 42 85
+           C44 87 46 88 48 88
+           C50 88 50 85 50 80
+           C50 85 50 88 52 88
+           C54 88 56 87 58 85
+           C62 82 65 77 68 70
+           C72 60 75 50 75 40
+           C75 25 65 15 50 15Z" 
+        fill="white" 
+        stroke="url(#goldGradient)" 
+        stroke-width="2"/>
+  
+  <!-- Tooth highlight -->
+  <path d="M42 25 C38 28 35 35 35 42 C35 45 36 48 38 50" 
+        stroke="rgba(212,175,55,0.5)" 
+        stroke-width="3" 
+        stroke-linecap="round" 
+        fill="none"/>
+  
+  <!-- Tooth roots -->
+  <path d="M38 70 C36 75 34 80 33 85 C32 88 33 90 35 90 C37 90 39 88 40 85 C41 82 42 78 42 75" 
+        fill="white" 
+        stroke="url(#goldGradient)" 
+        stroke-width="1.5"/>
+  <path d="M58 70 C60 75 62 80 63 85 C64 88 63 90 61 90 C59 90 57 88 56 85 C55 82 54 78 54 75" 
+        fill="white" 
+        stroke="url(#goldGradient)" 
+        stroke-width="1.5"/>
+  
+  <!-- Sparkle decoration -->
+  <g transform="translate(68, 22)">
+    <path d="M0 0 L2 6 L8 8 L2 10 L0 16 L-2 10 L-8 8 L-2 6 Z" 
+          fill="url(#goldGradient)"/>
+  </g>
+  
+  <!-- Gold gradient definition -->
+  <defs>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4AF37;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#F4E4A6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D4AF37;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
