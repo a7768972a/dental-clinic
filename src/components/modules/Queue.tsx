@@ -35,46 +35,6 @@ export default function QueueModule() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [isDisplayMode, setIsDisplayMode] = useState(false);
-  const [logoUrl, setLogoUrl] = useState<string>('');
-
-  // Fetch logo from settings
-  useEffect(() => {
-    const fetchLogo = async () => {
-      try {
-        // First check localStorage for immediate display
-        const savedLogo = localStorage.getItem('clinicLogo');
-        if (savedLogo) {
-          setLogoUrl(savedLogo);
-        }
-
-        // Then fetch from API to ensure we have the latest
-        const res = await fetch('/api/settings');
-        const data = await res.json();
-        if (data.settings) {
-          const logoSetting = data.settings.find((s: any) => s.key === 'logoDataUrl');
-          if (logoSetting?.value) {
-            setLogoUrl(logoSetting.value);
-            localStorage.setItem('clinicLogo', logoSetting.value);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching logo:', error);
-      }
-    };
-
-    fetchLogo();
-
-    // Listen for logo changes from settings
-    const handleLogoChange = (e: CustomEvent) => {
-      if (e.detail.logoDataUrl) {
-        setLogoUrl(e.detail.logoDataUrl);
-      }
-    };
-    window.addEventListener('logoChanged', handleLogoChange as EventListener);
-    return () => {
-      window.removeEventListener('logoChanged', handleLogoChange as EventListener);
-    };
-  }, []);
 
   // Update current time every second
   useEffect(() => {
@@ -203,20 +163,8 @@ export default function QueueModule() {
       <header className="p-6 border-b border-white/20">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm overflow-hidden">
-              {logoUrl ? (
-                <img 
-                  src={logoUrl} 
-                  alt="شعار العيادة" 
-                  className="w-full h-full object-contain p-1"
-                />
-              ) : (
-                <img 
-                  src="/dental-logo.svg" 
-                  alt="شعار العيادة" 
-                  className="w-12 h-12"
-                />
-              )}
+            <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center text-3xl font-bold backdrop-blur-sm">
+              سن
             </div>
             <div>
               <h1 className="text-3xl font-bold">عيادة الدكتور بشار عابدين</h1>
