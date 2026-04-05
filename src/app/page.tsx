@@ -59,7 +59,7 @@ const menuItems = [
 ];
 
 function DentalOSContent() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, isLoading, logout } = useAuth();
   const [activeModule, setActiveModule] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -69,11 +69,6 @@ function DentalOSContent() {
   const [customLogo, setCustomLogo] = useState<string | null>(null);
   const [moduleAction, setModuleAction] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
-
-  // إذا لم يكن مسجل الدخول، عرض شاشة تسجيل الدخول
-  if (!isAuthenticated) {
-    return <LoginScreen />;
-  }
 
   // Load sidebar preference and logo
   useEffect(() => {
@@ -166,6 +161,20 @@ function DentalOSContent() {
   }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // عرض شاشة التحميل
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // إذا لم يكن مسجل الدخول، عرض شاشة تسجيل الدخول
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
 
   const renderModule = () => {
     switch (activeModule) {
