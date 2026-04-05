@@ -4,21 +4,29 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-export const db =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+function createPrismaClient() {
+  return new PrismaClient({
+    log: ['error'],
     datasources: {
       db: {
         url: process.env.DATABASE_URL,
       },
     },
+    // Important for serverless
+    __internal: {
+      engine: {
+        connectionLimit: 1,
+      },
+    },
   })
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+// In development, use a global variable to preserve the client
+// In production (Vercel), create a new client for each function invocation
+export const db = process.env.NODE_ENV === 'production' 
+  ? createPrismaClient()
+  : (globalForPrisma.prisma ?? createPrismaClient())
 
-// Handle cleanup on process termination
-if (process.env.NODE_ENV === 'production') {
-  // In production (Vercel), we don't need to disconnect explicitly
-  // as the function will be terminated anyway
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = db
 }
