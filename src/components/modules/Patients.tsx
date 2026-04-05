@@ -103,7 +103,12 @@ export default function PatientsModule({ initialAction, onActionComplete }: { in
 
   const fetchPatients = async () => {
     try {
-      const res = await fetch('/api/patients');
+      const res = await fetch('/api/patients', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
       const data = await res.json();
       setPatients(data.patients || []);
     } catch (error) {
@@ -132,15 +137,21 @@ export default function PatientsModule({ initialAction, onActionComplete }: { in
         });
         toast.success('تم تحديث بيانات المريض');
       } else {
-        await fetch('/api/patients', {
+        const res = await fetch('/api/patients', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
-        toast.success('تم إضافة المريض بنجاح');
+        if (res.ok) {
+          toast.success('تم إضافة المريض بنجاح');
+        } else {
+          throw new Error('Failed to add patient');
+        }
       }
       setIsDialogOpen(false);
-      fetchPatients();
+      // Force refresh with no cache
+      setLoading(true);
+      await fetchPatients();
     } catch (error) {
       toast.error('خطأ في حفظ البيانات');
     }

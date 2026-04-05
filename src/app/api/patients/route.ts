@@ -17,7 +17,12 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ patients });
+    const response = NextResponse.json({ patients });
+    // Prevent caching to ensure fresh data
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    return response;
   } catch (error) {
     console.error('Error fetching patients:', error);
     return NextResponse.json({ error: 'Error fetching patients' }, { status: 500 });
@@ -40,7 +45,9 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ patient });
+    const response = NextResponse.json({ patient });
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    return response;
   } catch (error) {
     console.error('Error creating patient:', error);
     return NextResponse.json({ error: 'Error creating patient' }, { status: 500 });
