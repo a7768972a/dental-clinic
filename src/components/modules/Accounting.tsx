@@ -21,6 +21,9 @@ import {
   FilePlus,
   Trash2,
   Wallet,
+  User,
+  Search,
+  X,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -181,6 +184,11 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
 
+  // بحث المريض
+  const [patientSearch, setPatientSearch] = useState('');
+  const [showPatientSearch, setShowPatientSearch] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+
   const [expenseForm, setExpenseForm] = useState({
     category: 'other',
     description: '',
@@ -257,6 +265,28 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
     } finally {
       setLoading(false);
     }
+  };
+
+  // ترتيب المرضى أبجدياً
+  const sortedPatients = [...patients].sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+  
+  // تصفية المرضى حسب البحث
+  const filteredPatients = patientSearch 
+    ? sortedPatients.filter((patient) =>
+        patient.name.includes(patientSearch) || patient.phone.includes(patientSearch)
+      )
+    : sortedPatients;
+
+  const handleSelectPatient = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setInvoiceForm({ ...invoiceForm, patientId: patient.id });
+    setPatientSearch('');
+    setShowPatientSearch(false);
+  };
+
+  const handleRemovePatient = () => {
+    setSelectedPatient(null);
+    setInvoiceForm({ ...invoiceForm, patientId: '' });
   };
 
   const handleAddExpense = async (e: React.FormEvent) => {
@@ -495,6 +525,35 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
   const eligibleInvoices = invoices.filter(
     (inv) => inv.status === 'pending' || inv.status === 'partially-paid'
   );
+
+  // Handle delete invoice
+  const handleDeleteInvoice = async (invoice: Invoice) => {
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}`, { method: 'DELETE' });
+      const data = await response.json();
+
+      if (data.success) {
+        // Remove from local state immediately
+        setInvoices(prev => prev.filter(inv => inv.id !== invoice.id));
+        
+        // Remove from installment plans if exists
+        setInstallmentPlans(prev => prev.filter(plan => plan.invoiceId !== invoice.id));
+        
+        // Dispatch event for other components
+        window.dispatchEvent(new CustomEvent('invoicesUpdated'));
+        
+        toast.success('تم حذف الفاتورة بنجاح');
+        setIsDeleteDialogOpen(false);
+        setDeletePassword('');
+        setSelectedInvoice(null);
+      } else {
+        toast.error(data.error || 'خطأ في حذف الفاتورة');
+      }
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      toast.error('خطأ في حذف الفاتورة');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -1049,21 +1108,70 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
             {/* Patient Selection */}
             <div className="space-y-2">
               <Label className="text-base font-semibold">المريض</Label>
-              <Select
-                value={invoiceForm.patientId}
-                onValueChange={(value) => setInvoiceForm({ ...invoiceForm, patientId: value })}
-              >
-                <SelectTrigger className="h-12">
-                  <SelectValue placeholder="اختر المريض" />
-                </SelectTrigger>
-                <SelectContent>
-                  {patients.map((patient) => (
-                    <SelectItem key={patient.id} value={patient.id}>
-                      {patient.name} - {patient.phone}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              
+              {/* المريض المختار */}
+              {selectedPatient ? (
+                <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <User className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{selectedPatient.name}</p>
+                      <p className="text-sm text-muted-foreground">{selectedPatient.phone}</p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleRemovePatient}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                /* مربع البحث */
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="ابحث عن مريض (الاسم أو رقم الهاتف)..."
+                    value={patientSearch}
+                    onChange={(e) => {
+                      setPatientSearch(e.target.value);
+                      setShowPatientSearch(true);
+                    }}
+                    onFocus={() => setShowPatientSearch(true)}
+                    className="pr-10 h-12"
+                  />
+                  
+                  {/* نتائج البحث */}
+                  {showPatientSearch && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {filteredPatients.length === 0 ? (
+                        <div className="p-4 text-center text-muted-foreground">
+                          لا يوجد مرضى مطابقين
+                        </div>
+                      ) : (
+                        filteredPatients.slice(0, 10).map((patient) => (
+                          <button
+                            key={patient.id}
+                            type="button"
+                            className="w-full flex items-center gap-3 p-3 hover:bg-muted text-right"
+                            onClick={() => handleSelectPatient(patient)}
+                          >
+                            <User className="w-4 h-4 text-muted-foreground" />
+                            <div className="flex-1">
+                              <p className="font-medium">{patient.name}</p>
+                              <p className="text-sm text-muted-foreground">{patient.phone}</p>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Services Selection */}
@@ -1368,16 +1476,7 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
                     <Button
                       variant="destructive"
                       className="flex-1"
-                      onClick={async () => {
-                        try {
-                          await fetch(`/api/invoices/${selectedInvoice.id}`, { method: 'DELETE' });
-                          toast.success('تم حذف الفاتورة');
-                          setIsDeleteDialogOpen(false);
-                          fetchData();
-                        } catch (error) {
-                          toast.error('خطأ في حذف الفاتورة');
-                        }
-                      }}
+                      onClick={() => handleDeleteInvoice(selectedInvoice)}
                     >
                       <Trash2 className="w-4 h-4 ml-2" />
                       حذف
@@ -1415,20 +1514,12 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
                       variant="destructive"
                       className="flex-1"
                       disabled={deletePassword !== DELETE_PASSWORD}
-                      onClick={async () => {
+                      onClick={() => {
                         if (deletePassword !== DELETE_PASSWORD) {
                           toast.error('كلمة السر غير صحيحة');
                           return;
                         }
-                        try {
-                          await fetch(`/api/invoices/${selectedInvoice.id}`, { method: 'DELETE' });
-                          toast.success('تم حذف الفاتورة');
-                          setIsDeleteDialogOpen(false);
-                          setDeletePassword('');
-                          fetchData();
-                        } catch (error) {
-                          toast.error('خطأ في حذف الفاتورة');
-                        }
+                        handleDeleteInvoice(selectedInvoice);
                       }}
                     >
                       <Trash2 className="w-4 h-4 ml-2" />

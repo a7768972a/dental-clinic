@@ -67,6 +67,16 @@ export default function DashboardModule() {
   useEffect(() => {
     fetchDashboardData();
     fetchNotifications();
+
+    // الاستماع لتغييرات المواعيد
+    const handleAppointmentsUpdate = () => {
+      fetchDashboardData();
+    };
+    window.addEventListener('appointmentsUpdated', handleAppointmentsUpdate);
+
+    return () => {
+      window.removeEventListener('appointmentsUpdated', handleAppointmentsUpdate);
+    };
   }, []);
 
   const fetchDashboardData = async () => {

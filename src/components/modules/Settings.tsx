@@ -101,6 +101,12 @@ export default function SettingsModule() {
     }
     if (savedThemeMode) {
       setSettings(prev => ({ ...prev, themeMode: savedThemeMode as 'light' | 'dark' }));
+      // Apply dark mode on load
+      if (savedThemeMode === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
   }, []);
 
@@ -167,6 +173,13 @@ export default function SettingsModule() {
       localStorage.setItem('currencyMode', settings.currencyMode);
       localStorage.setItem('primaryColor', settings.primaryColor);
       localStorage.setItem('themeMode', settings.themeMode);
+      
+      // Apply dark mode to html element
+      if (settings.themeMode === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
       
       // Dispatch events for UI updates
       window.dispatchEvent(new CustomEvent('logoChanged', {

@@ -26,6 +26,24 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var themeMode = localStorage.getItem('themeMode');
+                  if (themeMode === 'dark') {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${ibmPlexArabic.variable} font-sans antialiased bg-background text-foreground`}
         style={{ fontFamily: 'var(--font-arabic), system-ui, sans-serif' }}

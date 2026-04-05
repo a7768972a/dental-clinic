@@ -21,6 +21,8 @@ import {
   Trash2,
   CheckCircle,
   XCircle,
+  Search,
+  X,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -101,6 +103,11 @@ export default function SchedulerModule() {
     notes: '',
   });
 
+  // Patient search states
+  const [patientSearch, setPatientSearch] = useState('');
+  const [showPatientSearch, setShowPatientSearch] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+
   // تأكيد سحب الموعد
   const [showDropConfirm, setShowDropConfirm] = useState(false);
   const [pendingDrop, setPendingDrop] = useState<any>(null);
@@ -174,6 +181,28 @@ export default function SchedulerModule() {
     }
   };
 
+  // تصفية المرضى حسب البحث
+  const sortedPatients = [...patients].sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+  const filteredPatients = sortedPatients.filter((patient) =>
+    patient.name.includes(patientSearch) || patient.phone.includes(patientSearch)
+  );
+
+  const handleSelectPatient = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setFormData({
+      ...formData,
+      patientId: patient.id,
+      patientName: patient.name,
+    });
+    setPatientSearch('');
+    setShowPatientSearch(false);
+  };
+
+  const handleRemovePatient = () => {
+    setSelectedPatient(null);
+    setFormData({ ...formData, patientId: '', patientName: '' });
+  };
+
   const handleDateClick = (arg: any) => {
     const date = new Date(arg.date);
     
@@ -188,6 +217,7 @@ export default function SchedulerModule() {
       status: 'scheduled',
       notes: '',
     });
+    setSelectedPatient(null);
     setIsEditMode(false);
     setSelectedEvent(null);
     setIsDialogOpen(true);
@@ -218,6 +248,15 @@ export default function SchedulerModule() {
       status: event.extendedProps.status || 'scheduled',
       notes: event.extendedProps.notes || '',
     });
+    // تعيين المريض المختار عند التعديل
+    if (event.extendedProps.patientId) {
+      const patient = patients.find(p => p.id === event.extendedProps.patientId);
+      if (patient) {
+        setSelectedPatient(patient);
+      }
+    } else {
+      setSelectedPatient(null);
+    }
     setIsEditMode(true);
     setIsDialogOpen(true);
   };
@@ -252,6 +291,8 @@ export default function SchedulerModule() {
         }),
       });
       toast.success('تم تحديث الموعد بنجاح');
+      // إعلام لوحة التحكم بالتحديث
+      window.dispatchEvent(new CustomEvent('appointmentsUpdated'));
     } catch (error) {
       toast.error('خطأ في تحديث الموعد');
       pendingDrop.arg.revert();
@@ -304,6 +345,8 @@ export default function SchedulerModule() {
       }
       setIsDialogOpen(false);
       fetchAppointments();
+      // إعلام لوحة التحكم بالتحديث
+      window.dispatchEvent(new CustomEvent('appointmentsUpdated'));
     } catch (error) {
       toast.error('خطأ في حفظ الموعد');
     }
@@ -369,6 +412,7 @@ export default function SchedulerModule() {
                 status: 'scheduled',
                 notes: '',
               });
+              setSelectedPatient(null);
               setIsEditMode(false);
               setSelectedEvent(null);
               setIsDialogOpen(true);
@@ -466,28 +510,70 @@ export default function SchedulerModule() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>المريض</Label>
-              <Select
-                value={formData.patientId}
-                onValueChange={(value) => {
-                  const patient = patients.find((p) => p.id === value);
-                  setFormData({
-                    ...formData,
-                    patientId: value,
-                    patientName: patient?.name || '',
-                  });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر المريض" />
-                </SelectTrigger>
-                <SelectContent>
-                  {patients.map((patient) => (
-                    <SelectItem key={patient.id} value={patient.id}>
-                      {patient.name} - {patient.phone}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              
+              {/* المريض المختار */}
+              {selectedPatient ? (
+                <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <User className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{selectedPatient.name}</p>
+                      <p className="text-sm text-muted-foreground">{selectedPatient.phone}</p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleRemovePatient}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                /* مربع البحث */
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="ابحث عن مريض (الاسم أو رقم الهاتف)..."
+                    value={patientSearch}
+                    onChange={(e) => {
+                      setPatientSearch(e.target.value);
+                      setShowPatientSearch(true);
+                    }}
+                    onFocus={() => setShowPatientSearch(true)}
+                    className="pr-10"
+                  />
+                  
+                  {/* نتائج البحث */}
+                  {showPatientSearch && patientSearch && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {filteredPatients.length === 0 ? (
+                        <div className="p-4 text-center text-muted-foreground">
+                          لا يوجد مرضى مطابقين
+                        </div>
+                      ) : (
+                        filteredPatients.slice(0, 10).map((patient) => (
+                          <button
+                            key={patient.id}
+                            type="button"
+                            className="w-full flex items-center gap-3 p-3 hover:bg-muted text-right"
+                            onClick={() => handleSelectPatient(patient)}
+                          >
+                            <User className="w-4 h-4 text-muted-foreground" />
+                            <div className="flex-1">
+                              <p className="font-medium">{patient.name}</p>
+                              <p className="text-sm text-muted-foreground">{patient.phone}</p>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
