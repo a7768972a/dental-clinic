@@ -35,6 +35,7 @@ export default function QueueModule() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [isDisplayMode, setIsDisplayMode] = useState(false);
+  const [clinicLogo, setClinicLogo] = useState<string | null>(null);
 
   // Update current time every second
   useEffect(() => {
@@ -52,6 +53,23 @@ export default function QueueModule() {
     window.addEventListener('queueDisplayModeChanged', handleDisplayModeChange as EventListener);
     return () => {
       window.removeEventListener('queueDisplayModeChanged', handleDisplayModeChange as EventListener);
+    };
+  }, []);
+
+  // Load clinic logo
+  useEffect(() => {
+    const savedLogo = localStorage.getItem('clinicLogo');
+    if (savedLogo) {
+      setClinicLogo(savedLogo);
+    }
+
+    // Listen for logo changes
+    const handleLogoChange = (e: CustomEvent) => {
+      setClinicLogo(e.detail.logoDataUrl || null);
+    };
+    window.addEventListener('logoChanged', handleLogoChange as EventListener);
+    return () => {
+      window.removeEventListener('logoChanged', handleLogoChange as EventListener);
     };
   }, []);
 
@@ -163,8 +181,12 @@ export default function QueueModule() {
       <header className="p-6 border-b border-white/20">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center text-3xl font-bold backdrop-blur-sm">
-              سن
+            <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm overflow-hidden">
+              {clinicLogo ? (
+                <img src={clinicLogo} alt="Clinic Logo" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-3xl font-bold">سن</span>
+              )}
             </div>
             <div>
               <h1 className="text-3xl font-bold">عيادة الدكتور بشار عابدين</h1>

@@ -149,6 +149,15 @@ const installmentStatuses = [
   { value: 'defaulted', label: 'متأخر', color: 'bg-orange-100 text-orange-700' },
 ];
 
+// كلمة سر الحذف
+const DELETE_PASSWORD = 'delete123';
+
+// دالة تنسيق الأرقام مع تقريب رقم واحد بعد الفاصلة
+const formatAmount = (amount: number): string => {
+  const rounded = Math.round(amount * 10) / 10;
+  return rounded.toLocaleString('ar-SA', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+};
+
 export default function AccountingModule({ initialAction, onActionComplete }: { initialAction?: string | null; onActionComplete?: () => void }) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -166,8 +175,11 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<InstallmentPlan | null>(null);
   const [selectedInstallment, setSelectedInstallment] = useState<InstallmentPayment | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
 
   const [expenseForm, setExpenseForm] = useState({
     category: 'other',
@@ -673,14 +685,17 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
                           </div>
                           <div className="flex items-center gap-4">
                             <div className="text-left">
-                              <p className="font-bold">{invoice.total.toLocaleString()} ل.س</p>
+                              <p className="font-bold">{formatAmount(invoice.total)} ل.س</p>
                               <p className="text-xs text-muted-foreground">
-                                مدفوع: {invoice.paidAmount.toLocaleString()} ل.س
+                                مدفوع: {formatAmount(invoice.paidAmount)} ل.س
                               </p>
                             </div>
                             <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
-                            <Button variant="ghost" size="icon">
-                              <Eye className="w-4 h-4" />
+                            <Button variant="ghost" size="icon" onClick={() => {
+                              setSelectedInvoice(invoice);
+                              setIsDeleteDialogOpen(true);
+                            }}>
+                              <Trash2 className="w-4 h-4 text-destructive" />
                             </Button>
                           </div>
                         </div>
@@ -1315,6 +1330,115 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Invoice Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              حذف الفاتورة
+            </DialogTitle>
+          </DialogHeader>
+          {selectedInvoice && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="font-medium">{selectedInvoice.invoiceNumber}</p>
+                <p className="text-sm text-muted-foreground">{selectedInvoice.patient?.name}</p>
+                <p className="text-lg font-bold mt-2">{formatAmount(selectedInvoice.total)} ل.س</p>
+              </div>
+
+              {/* إذا كانت الفاتورة مدفوعة بالكامل */}
+              {selectedInvoice.status === 'paid' ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-green-700 font-medium">هذه الفاتورة مدفوعة بالكامل</p>
+                    <p className="text-sm text-green-600">يمكن حذفها بدون كلمة سر</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setIsDeleteDialogOpen(false)}
+                    >
+                      إلغاء
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={async () => {
+                        try {
+                          await fetch(`/api/invoices/${selectedInvoice.id}`, { method: 'DELETE' });
+                          toast.success('تم حذف الفاتورة');
+                          setIsDeleteDialogOpen(false);
+                          fetchData();
+                        } catch (error) {
+                          toast.error('خطأ في حذف الفاتورة');
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 ml-2" />
+                      حذف
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* إذا لم تكن مدفوعة - تتطلب كلمة سر */
+                <div className="space-y-4">
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-yellow-700 font-medium">هذه الفاتورة غير مدفوعة بالكامل</p>
+                    <p className="text-sm text-yellow-600">يتطلب إدخال كلمة السر للحذف</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>كلمة السر</Label>
+                    <Input
+                      type="password"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      placeholder="أدخل كلمة السر"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setIsDeleteDialogOpen(false);
+                        setDeletePassword('');
+                      }}
+                    >
+                      إلغاء
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="flex-1"
+                      disabled={deletePassword !== DELETE_PASSWORD}
+                      onClick={async () => {
+                        if (deletePassword !== DELETE_PASSWORD) {
+                          toast.error('كلمة السر غير صحيحة');
+                          return;
+                        }
+                        try {
+                          await fetch(`/api/invoices/${selectedInvoice.id}`, { method: 'DELETE' });
+                          toast.success('تم حذف الفاتورة');
+                          setIsDeleteDialogOpen(false);
+                          setDeletePassword('');
+                          fetchData();
+                        } catch (error) {
+                          toast.error('خطأ في حذف الفاتورة');
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 ml-2" />
+                      حذف
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

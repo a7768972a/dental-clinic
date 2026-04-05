@@ -2,28 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarPlus, Clock, User, Phone, FileText, CheckCircle } from 'lucide-react';
+import { CalendarPlus, Clock, User, Phone, FileText, CheckCircle, Search, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { toast } from 'sonner';
-
-interface Service {
-  id: string;
-  name: string;
-  nameAr: string;
-  price: number;
-  duration: number;
-}
 
 interface Patient {
   id: string;
@@ -36,36 +21,28 @@ interface Props {
 }
 
 export default function QuickBookingModule({ onSuccess }: Props) {
-  const [services, setServices] = useState<Service[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(false);
   const [newPatientMode, setNewPatientMode] = useState(false);
+  
+  // بحث المريض
+  const [patientSearch, setPatientSearch] = useState('');
+  const [showPatientSearch, setShowPatientSearch] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   
   const [formData, setFormData] = useState({
     patientId: '',
     newPatientName: '',
     newPatientPhone: '',
-    serviceId: '',
     date: new Date().toISOString().split('T')[0],
     startTime: '09:00',
-    endTime: '09:30',
+    duration: 30, // مدة الموعد بالدقائق
     notes: '',
   });
 
   useEffect(() => {
-    fetchServices();
     fetchPatients();
   }, []);
-
-  const fetchServices = async () => {
-    try {
-      const res = await fetch('/api/services?active=true');
-      const data = await res.json();
-      setServices(data.services || []);
-    } catch (error) {
-      console.error('Error fetching services:', error);
-    }
-  };
 
   const fetchPatients = async () => {
     try {
@@ -77,22 +54,30 @@ export default function QuickBookingModule({ onSuccess }: Props) {
     }
   };
 
-  const handleServiceChange = (serviceId: string) => {
-    const service = services.find((s) => s.id === serviceId);
-    if (service) {
-      const startTime = formData.startTime.split(':');
-      const startMinutes = parseInt(startTime[0]) * 60 + parseInt(startTime[1]);
-      const endMinutes = startMinutes + service.duration;
-      const endHour = Math.floor(endMinutes / 60);
-      const endMin = endMinutes % 60;
-      setFormData({
-        ...formData,
-        serviceId,
-        endTime: `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`,
-      });
-    } else {
-      setFormData({ ...formData, serviceId });
-    }
+  // تصفية المرضى حسب البحث
+  const filteredPatients = patients.filter((patient) =>
+    patient.name.includes(patientSearch) || patient.phone.includes(patientSearch)
+  );
+
+  // حساب وقت النهاية من وقت البداية + المدة
+  const calculateEndTime = (startTime: string, durationMinutes: number): string => {
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const totalMinutes = hours * 60 + minutes + durationMinutes;
+    const endHours = Math.floor(totalMinutes / 60) % 24;
+    const endMinutes = totalMinutes % 60;
+    return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+  };
+
+  const handleSelectPatient = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setFormData({ ...formData, patientId: patient.id });
+    setPatientSearch('');
+    setShowPatientSearch(false);
+  };
+
+  const handleRemovePatient = () => {
+    setSelectedPatient(null);
+    setFormData({ ...formData, patientId: '' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -124,15 +109,15 @@ export default function QuickBookingModule({ onSuccess }: Props) {
 
       // Create appointment
       const startDateTime = new Date(`${formData.date}T${formData.startTime}`);
-      const endDateTime = new Date(`${formData.date}T${formData.endTime}`);
+      const endDateTime = new Date(startDateTime.getTime() + formData.duration * 60000);
 
       await fetch('/api/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientId,
-          title: formData.newPatientName || patients.find((p) => p.id === patientId)?.name,
-          serviceId: formData.serviceId || null,
+          title: newPatientMode ? formData.newPatientName : selectedPatient?.name,
+          serviceId: null, // بدون خدمة
           startTime: startDateTime.toISOString(),
           endTime: endDateTime.toISOString(),
           status: 'scheduled',
@@ -147,12 +132,12 @@ export default function QuickBookingModule({ onSuccess }: Props) {
         patientId: '',
         newPatientName: '',
         newPatientPhone: '',
-        serviceId: '',
         date: new Date().toISOString().split('T')[0],
         startTime: '09:00',
-        endTime: '09:30',
+        duration: 30,
         notes: '',
       });
+      setSelectedPatient(null);
       setNewPatientMode(false);
       
       if (onSuccess) onSuccess();
@@ -171,6 +156,15 @@ export default function QuickBookingModule({ onSuccess }: Props) {
       );
     }
   }
+
+  const durationOptions = [
+    { value: 15, label: '15 دقيقة' },
+    { value: 30, label: '30 دقيقة' },
+    { value: 45, label: '45 دقيقة' },
+    { value: 60, label: 'ساعة واحدة' },
+    { value: 90, label: 'ساعة ونصف' },
+    { value: 120, label: 'ساعتان' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -200,7 +194,10 @@ export default function QuickBookingModule({ onSuccess }: Props) {
                     type="button"
                     variant={!newPatientMode ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setNewPatientMode(false)}
+                    onClick={() => {
+                      setNewPatientMode(false);
+                      setSelectedPatient(null);
+                    }}
                     className={!newPatientMode ? 'bg-primary text-primary-foreground' : ''}
                   >
                     مريض موجود
@@ -209,7 +206,11 @@ export default function QuickBookingModule({ onSuccess }: Props) {
                     type="button"
                     variant={newPatientMode ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setNewPatientMode(true)}
+                    onClick={() => {
+                      setNewPatientMode(true);
+                      setSelectedPatient(null);
+                      setFormData({ ...formData, patientId: '' });
+                    }}
                     className={newPatientMode ? 'bg-primary text-primary-foreground' : ''}
                   >
                     مريض جديد
@@ -219,21 +220,70 @@ export default function QuickBookingModule({ onSuccess }: Props) {
                 {!newPatientMode ? (
                   <div className="space-y-2">
                     <Label>اختر المريض</Label>
-                    <Select
-                      value={formData.patientId}
-                      onValueChange={(value) => setFormData({ ...formData, patientId: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر المريض..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {patients.map((patient) => (
-                          <SelectItem key={patient.id} value={patient.id}>
-                            {patient.name} - {patient.phone}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    
+                    {/* المريض المختار */}
+                    {selectedPatient ? (
+                      <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                            <User className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{selectedPatient.name}</p>
+                            <p className="text-sm text-muted-foreground">{selectedPatient.phone}</p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={handleRemovePatient}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      /* مربع البحث */
+                      <div className="relative">
+                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder="ابحث عن مريض (الاسم أو رقم الهاتف)..."
+                          value={patientSearch}
+                          onChange={(e) => {
+                            setPatientSearch(e.target.value);
+                            setShowPatientSearch(true);
+                          }}
+                          onFocus={() => setShowPatientSearch(true)}
+                          className="pr-10"
+                        />
+                        
+                        {/* نتائج البحث */}
+                        {showPatientSearch && patientSearch && (
+                          <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {filteredPatients.length === 0 ? (
+                              <div className="p-4 text-center text-muted-foreground">
+                                لا يوجد مرضى مطابقين
+                              </div>
+                            ) : (
+                              filteredPatients.slice(0, 10).map((patient) => (
+                                <button
+                                  key={patient.id}
+                                  type="button"
+                                  className="w-full flex items-center gap-3 p-3 hover:bg-muted text-right"
+                                  onClick={() => handleSelectPatient(patient)}
+                                >
+                                  <User className="w-4 h-4 text-muted-foreground" />
+                                  <div className="flex-1">
+                                    <p className="font-medium">{patient.name}</p>
+                                    <p className="text-sm text-muted-foreground">{patient.phone}</p>
+                                  </div>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-4">
@@ -263,24 +313,7 @@ export default function QuickBookingModule({ onSuccess }: Props) {
                 )}
               </div>
 
-              {/* Service Selection */}
-              <div className="space-y-2">
-                <Label>الخدمة</Label>
-                <Select value={formData.serviceId} onValueChange={handleServiceChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر الخدمة..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {services.map((service) => (
-                      <SelectItem key={service.id} value={service.id}>
-                        {service.nameAr} - {service.price.toLocaleString()} ل.س ({service.duration} دقيقة)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Date and Time */}
+              {/* Date, Time and Duration */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>التاريخ</Label>
@@ -292,31 +325,42 @@ export default function QuickBookingModule({ onSuccess }: Props) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>وقت البداية</Label>
-                  <Select
+                  <Label>وقت الموعد</Label>
+                  <select
                     value={formData.startTime}
-                    onValueChange={(value) => setFormData({ ...formData, startTime: value })}
+                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                    className="w-full h-10 px-3 rounded-md border bg-background"
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableSlots.map((slot) => (
-                        <SelectItem key={slot} value={slot}>
-                          {slot}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {availableSlots.map((slot) => (
+                      <option key={slot} value={slot}>
+                        {slot}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-2">
-                  <Label>وقت النهاية</Label>
-                  <Input
-                    type="time"
-                    value={formData.endTime}
-                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                    required
-                  />
+                  <Label>المدة</Label>
+                  <select
+                    value={formData.duration}
+                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                    className="w-full h-10 px-3 rounded-md border bg-background"
+                  >
+                    {durationOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* End Time Display */}
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">وقت الانتهاء:</span>
+                  <span className="font-medium">
+                    {calculateEndTime(formData.startTime, formData.duration)}
+                  </span>
                 </div>
               </div>
 
@@ -335,7 +379,7 @@ export default function QuickBookingModule({ onSuccess }: Props) {
               <Button
                 type="submit"
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                disabled={loading}
+                disabled={loading || (!newPatientMode && !selectedPatient)}
               >
                 {loading ? (
                   'جاري الحجز...'
@@ -379,12 +423,6 @@ export default function QuickBookingModule({ onSuccess }: Props) {
                     {patients.length}
                   </p>
                   <p className="text-xs text-muted-foreground">مريض</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-primary">
-                    {services.length}
-                  </p>
-                  <p className="text-xs text-muted-foreground">خدمة</p>
                 </div>
               </div>
             </div>

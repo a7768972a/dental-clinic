@@ -96,10 +96,14 @@ export default function SchedulerModule() {
     title: '',
     date: '',
     startTime: '',
-    endTime: '',
+    duration: 30, // المدة بالدقائق
     status: 'scheduled',
     notes: '',
   });
+
+  // تأكيد سحب الموعد
+  const [showDropConfirm, setShowDropConfirm] = useState(false);
+  const [pendingDrop, setPendingDrop] = useState<any>(null);
 
   useEffect(() => {
     fetchAppointments();
@@ -220,6 +224,24 @@ export default function SchedulerModule() {
 
   const handleEventDrop = async (arg: any) => {
     const event = arg.event;
+    const status = event.extendedProps.status;
+    
+    // منع السحب إذا كان الموعد مؤكد أو مكتمل أو ملغي
+    if (status === 'confirmed' || status === 'completed' || status === 'cancelled') {
+      toast.error('لا يمكن تعديل موعد ' + (status === 'confirmed' ? 'مؤكد' : status === 'completed' ? 'مكتمل' : 'ملغي'));
+      arg.revert();
+      return;
+    }
+    
+    // إظهار تأكيد
+    setPendingDrop({ event, arg });
+    setShowDropConfirm(true);
+  };
+
+  const confirmDrop = async () => {
+    if (!pendingDrop) return;
+    const { event } = pendingDrop;
+    
     try {
       await fetch(`/api/appointments/${event.id}`, {
         method: 'PUT',
@@ -232,15 +254,27 @@ export default function SchedulerModule() {
       toast.success('تم تحديث الموعد بنجاح');
     } catch (error) {
       toast.error('خطأ في تحديث الموعد');
-      arg.revert();
+      pendingDrop.arg.revert();
+    } finally {
+      setShowDropConfirm(false);
+      setPendingDrop(null);
+      fetchAppointments();
     }
+  };
+
+  const cancelDrop = () => {
+    if (pendingDrop) {
+      pendingDrop.arg.revert();
+    }
+    setShowDropConfirm(false);
+    setPendingDrop(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const startDateTime = new Date(`${formData.date}T${formData.startTime}`);
-    const endDateTime = new Date(`${formData.date}T${formData.endTime}`);
+    const endDateTime = new Date(startDateTime.getTime() + formData.duration * 60000);
     
     const appointmentData = {
       patientId: formData.patientId,
@@ -285,6 +319,8 @@ export default function SchedulerModule() {
       toast.success('تم حذف الموعد بنجاح');
       setIsDialogOpen(false);
       fetchAppointments();
+      // إرسال حدث لتحديث لوحة التحكم
+      window.dispatchEvent(new CustomEvent('appointmentsUpdated'));
     } catch (error) {
       toast.error('خطأ في حذف الموعد');
     }
@@ -518,7 +554,7 @@ export default function SchedulerModule() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>وقت البداية</Label>
+                <Label>وقت الموعد</Label>
                 <Input
                   type="time"
                   value={formData.startTime}
@@ -527,13 +563,23 @@ export default function SchedulerModule() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>وقت النهاية</Label>
-                <Input
-                  type="time"
-                  value={formData.endTime}
-                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                  required
-                />
+                <Label>المدة</Label>
+                <Select
+                  value={formData.duration.toString()}
+                  onValueChange={(value) => setFormData({ ...formData, duration: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="15">15 دقيقة</SelectItem>
+                    <SelectItem value="30">30 دقيقة</SelectItem>
+                    <SelectItem value="45">45 دقيقة</SelectItem>
+                    <SelectItem value="60">ساعة واحدة</SelectItem>
+                    <SelectItem value="90">ساعة ونصف</SelectItem>
+                    <SelectItem value="120">ساعتان</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -584,6 +630,28 @@ export default function SchedulerModule() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* تأكيد سحب الموعد */}
+      <Dialog open={showDropConfirm} onOpenChange={setShowDropConfirm}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>تأكيد تغيير الموعد</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-center text-muted-foreground">
+              هل أنت متأكد من تغيير وقت الموعد؟
+            </p>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={cancelDrop}>
+              إلغاء
+            </Button>
+            <Button onClick={confirmDrop} className="bg-primary">
+              تأكيد
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -16,11 +16,13 @@ import {
   ArrowUpRight,
   Sparkles,
   MessageSquare,
+  Trash2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { toast } from 'sonner';
 
 interface DashboardStats {
   totalPatients: number;
@@ -87,6 +89,18 @@ export default function DashboardModule() {
       setNotifications(data.notifications || []);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const handleDeleteNotification = async (id: string) => {
+    try {
+      await fetch(`/api/notifications/${id}`, {
+        method: 'DELETE',
+      });
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      toast.success('تم حذف الإشعار');
+    } catch (error) {
+      toast.error('خطأ في حذف الإشعار');
     }
   };
 
@@ -246,15 +260,12 @@ export default function DashboardModule() {
           </CardContent>
         </Card>
 
-        {/* Automation Notifications */}
+        {/* Notifications Center - تم إزالة كلمة n8n */}
         <Card className="border-0 shadow-md">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-primary" />
               مركز التنبيهات
-              <Badge variant="secondary" className="text-xs">
-                n8n
-              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -271,7 +282,7 @@ export default function DashboardModule() {
                       key={notification.id}
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className={`p-3 rounded-lg border ${
+                      className={`p-3 rounded-lg border relative group ${
                         notification.read
                           ? 'bg-background border-border'
                           : 'bg-primary/5 border-primary/20'
@@ -307,6 +318,15 @@ export default function DashboardModule() {
                             })}
                           </p>
                         </div>
+                        {/* زر الحذف */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDeleteNotification(notification.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
                       </div>
                     </motion.div>
                   ))}

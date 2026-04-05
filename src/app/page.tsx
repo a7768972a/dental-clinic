@@ -16,7 +16,7 @@ import {
   User,
   Menu,
   X,
-  Sparkles,
+  LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,12 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Import modules
 import DashboardModule from '@/components/modules/Dashboard';
@@ -35,19 +41,25 @@ import AccountingModule from '@/components/modules/Accounting';
 import QueueModule from '@/components/modules/Queue';
 import SettingsModule from '@/components/modules/Settings';
 
-// Sidebar menu items
+// Import auth and notifications
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import LoginScreen from '@/components/LoginScreen';
+import NotificationsPopover from '@/components/NotificationsPopover';
+
+// Sidebar menu items - تغيير "قائمة الأسعار" إلى "قائمة الخدمات"
 const menuItems = [
   { id: 'dashboard', label: 'لوحة التحكم', icon: LayoutDashboard },
   { id: 'scheduler', label: 'جدول المواعيد', icon: CalendarDays },
   { id: 'patients', label: 'ملفات المرضى', icon: Users },
-  { id: 'billing', label: 'قائمة الأسعار', icon: DollarSign },
+  { id: 'billing', label: 'قائمة الخدمات', icon: DollarSign }, // تم التغيير
   { id: 'quick-booking', label: 'حجز موعد', icon: CalendarPlus },
   { id: 'accounting', label: 'الفواتير والنفقات', icon: Receipt },
   { id: 'queue', label: 'صالة الانتظار', icon: Users2 },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
 ];
 
-export default function DentalOS() {
+function DentalOSContent() {
+  const { isAuthenticated, logout } = useAuth();
   const [activeModule, setActiveModule] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -56,11 +68,17 @@ export default function DentalOS() {
   const [queueDisplayMode, setQueueDisplayMode] = useState(false);
   const [customLogo, setCustomLogo] = useState<string | null>(null);
   const [moduleAction, setModuleAction] = useState<string | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  // إذا لم يكن مسجل الدخول، عرض شاشة تسجيل الدخول
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
 
   // Load sidebar preference and logo
   useEffect(() => {
     let mounted = true;
-    
+
     const loadPreference = () => {
       const savedPref = localStorage.getItem('alwaysShowSidebar');
       if (mounted && savedPref !== null) {
@@ -78,7 +96,6 @@ export default function DentalOS() {
     const handleSettingChange = (e: CustomEvent) => {
       if (mounted) {
         setAlwaysShowSidebar(e.detail.alwaysShowSidebar);
-        // Reset sidebar state when setting changes
         if (e.detail.alwaysShowSidebar) {
           setSidebarOpen(false);
         }
@@ -126,7 +143,7 @@ export default function DentalOS() {
   // Fetch notifications
   useEffect(() => {
     let mounted = true;
-    
+
     const fetchNotifications = async () => {
       try {
         const res = await fetch('/api/notifications');
@@ -138,10 +155,10 @@ export default function DentalOS() {
         console.error('Error fetching notifications:', error);
       }
     };
-    
+
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
-    
+
     return () => {
       mounted = false;
       clearInterval(interval);
@@ -173,17 +190,8 @@ export default function DentalOS() {
     }
   };
 
-  // When alwaysShowSidebar is true:
-  // - Sidebar is FIXED and ALWAYS OPEN on the right
-  // - No toggle button at all
-  // When alwaysShowSidebar is false:
-  // - Sidebar starts CLOSED
-  // - Toggle button (☰) appears to open/close the sidebar
-  // - Sidebar slides in/out from the right
-
   const handleModuleClick = (moduleId: string) => {
     setActiveModule(moduleId);
-    // Close sidebar on mobile when a module is selected (only in collapsible mode)
     if (!alwaysShowSidebar) {
       setSidebarOpen(false);
     }
@@ -202,11 +210,7 @@ export default function DentalOS() {
   return (
     <div className="min-h-screen bg-background flex" dir="rtl">
       {/* Sidebar */}
-      {/* When alwaysShowSidebar is true: Fixed, always visible sidebar */}
-      {/* When alwaysShowSidebar is false: Sliding sidebar that can be toggled */}
-      
       {alwaysShowSidebar ? (
-        // FIXED SIDEBAR - Always visible, no toggle
         <aside className="w-[200px] flex flex-col gold-gradient text-white shadow-2xl fixed right-0 top-0 h-full z-40">
           {/* Logo Section */}
           <div className="p-3 border-b border-white/20">
@@ -252,7 +256,6 @@ export default function DentalOS() {
           </ScrollArea>
         </aside>
       ) : (
-        // COLLAPSIBLE SIDEBAR - Can be toggled open/close
         <>
           {/* Toggle Button */}
           <Button
@@ -276,7 +279,7 @@ export default function DentalOS() {
                   className="fixed inset-0 bg-black/50 z-40"
                   onClick={() => setSidebarOpen(false)}
                 />
-                
+
                 {/* Sidebar */}
                 <motion.aside
                   initial={{ x: '100%' }}
@@ -361,7 +364,7 @@ export default function DentalOS() {
                 variant="ghost"
                 size="icon"
                 className="relative hover:bg-muted"
-                onClick={() => toast.info('الإشعارات')}
+                onClick={() => setShowNotifications(!showNotifications)}
               >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
@@ -369,14 +372,37 @@ export default function DentalOS() {
                 )}
               </Button>
 
-              {/* User Profile */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full bg-primary/10 hover:bg-primary/20"
-              >
-                <User className="w-5 h-5 text-primary" />
-              </Button>
+              {/* User Profile Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full bg-primary/10 hover:bg-primary/20"
+                  >
+                    <User className="w-5 h-5 text-primary" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuItem
+                    onClick={() => setActiveModule('settings')}
+                    className="cursor-pointer"
+                  >
+                    <Settings className="w-4 h-4 ml-2" />
+                    الإعدادات
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      logout();
+                      toast.success('تم تسجيل الخروج');
+                    }}
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                  >
+                    <LogOut className="w-4 h-4 ml-2" />
+                    تسجيل الخروج
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
@@ -397,18 +423,30 @@ export default function DentalOS() {
           </AnimatePresence>
         </main>
 
-        {/* Footer */}
-        <footer className="bg-white/80 backdrop-blur-lg border-t border-border py-3 px-6 text-center text-sm text-muted-foreground">
-          <span className="flex items-center justify-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            Dental OS - نظام إدارة عيادة الأسنان المتكامل
-            <span className="text-primary">•</span>
-            جميع الحقوق محفوظة © {new Date().getFullYear()}
-          </span>
-        </footer>
+        {/* تم إزالة الـ Footer بالكامل */}
       </div>
+
+      {/* Notifications Popover */}
+      <NotificationsPopover
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        onNotificationChange={() => {
+          // Refresh notifications count
+          fetch('/api/notifications')
+            .then((res) => res.json())
+            .then((data) => setNotifications(data.notifications || []));
+        }}
+      />
 
       <Toaster position="top-left" richColors />
     </div>
+  );
+}
+
+export default function DentalOS() {
+  return (
+    <AuthProvider>
+      <DentalOSContent />
+    </AuthProvider>
   );
 }
