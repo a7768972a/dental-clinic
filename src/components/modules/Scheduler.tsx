@@ -176,7 +176,6 @@ export default function SchedulerModule() {
 
   const handleDateClick = (arg: any) => {
     const date = new Date(arg.date);
-    const endTime = new Date(date.getTime() + 30 * 60 * 1000);
     
     setFormData({
       patientId: '',
@@ -185,7 +184,7 @@ export default function SchedulerModule() {
       title: '',
       date: date.toISOString().split('T')[0],
       startTime: date.toTimeString().slice(0, 5),
-      endTime: endTime.toTimeString().slice(0, 5),
+      duration: 30,
       status: 'scheduled',
       notes: '',
     });
@@ -206,6 +205,7 @@ export default function SchedulerModule() {
     
     const startDate = new Date(event.start || '');
     const endDate = new Date(event.end || '');
+    const durationMinutes = Math.round((endDate.getTime() - startDate.getTime()) / 60000);
     
     setFormData({
       patientId: event.extendedProps.patientId || '',
@@ -214,7 +214,7 @@ export default function SchedulerModule() {
       title: event.title || '',
       date: startDate.toISOString().split('T')[0],
       startTime: startDate.toTimeString().slice(0, 5),
-      endTime: endDate.toTimeString().slice(0, 5),
+      duration: durationMinutes || 30,
       status: event.extendedProps.status || 'scheduled',
       notes: event.extendedProps.notes || '',
     });
@@ -365,7 +365,7 @@ export default function SchedulerModule() {
                 title: '',
                 date: new Date().toISOString().split('T')[0],
                 startTime: '09:00',
-                endTime: '09:30',
+                duration: 30,
                 status: 'scheduled',
                 notes: '',
               });
