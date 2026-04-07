@@ -351,7 +351,7 @@ function DentalOSContent() {
         }`}
       >
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-border shadow-sm">
+        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-lg border-b border-border shadow-sm">
           <div className="flex items-center justify-between px-4 lg:px-6 h-16">
             {/* Search */}
             <div className="flex-1 max-w-xl">
