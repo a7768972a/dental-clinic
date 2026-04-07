@@ -460,7 +460,7 @@ export default function SettingsModule() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-6">
-                <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#B8960C] flex items-center justify-center overflow-hidden shadow-lg">
+                <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center overflow-hidden shadow-lg">
                   {settings.logoDataUrl ? (
                     <img 
                       src={settings.logoDataUrl} 

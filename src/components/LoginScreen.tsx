@@ -38,13 +38,13 @@ export default function LoginScreen() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="bg-card rounded-2xl shadow-2xl p-8 border border-border">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-[#D4AF37] to-[#B8960C] rounded-2xl flex items-center justify-center">
+            <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center">
               <Lock className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-800">نظام إدارة العيادة</h1>
+            <h1 className="text-2xl font-bold text-foreground">نظام إدارة العيادة</h1>
             <p className="text-gray-500 mt-2">أدخل كلمة المرور للدخول</p>
           </div>
 
@@ -82,7 +82,7 @@ export default function LoginScreen() {
 
             <Button
               type="submit"
-              className="w-full h-12 text-lg bg-gradient-to-r from-[#D4AF37] to-[#B8960C] hover:from-[#B8960C] hover:to-[#9A7B0A] text-white"
+              className="w-full h-12 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/80 hover:to-primary/60 text-primary-foreground"
               disabled={isLoading || !password}
             >
               {isLoading ? (

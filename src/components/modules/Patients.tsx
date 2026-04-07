@@ -61,13 +61,13 @@ interface Patient {
 }
 
 const toothConditions = [
-  { value: 'healthy', label: 'سليم', color: '#ffffff', stroke: '#cccccc' },
-  { value: 'decay', label: 'تسوس', color: '#ef4444', stroke: '#dc2626' },
-  { value: 'filling', label: 'حشو', color: '#3b82f6', stroke: '#2563eb' },
-  { value: 'implant', label: 'زراعة', color: '#D4AF37', stroke: '#B8960C' },
-  { value: 'extracted', label: 'مخلوع', color: '#6b7280', stroke: '#4b5563' },
-  { value: 'crown', label: 'تاج', color: '#a855f7', stroke: '#9333ea' },
-  { value: 'root-canal', label: 'علاج عصب', color: '#f97316', stroke: '#ea580c' },
+  { value: 'healthy', label: 'سليم', color: '#ffffff', stroke: '#cccccc', darkColor: '#d1d5db', darkStroke: '#9ca3af' },
+  { value: 'decay', label: 'تسوس', color: '#ef4444', stroke: '#dc2626', darkColor: '#dc2626', darkStroke: '#b91c1c' },
+  { value: 'filling', label: 'حشو', color: '#3b82f6', stroke: '#2563eb', darkColor: '#60a5fa', darkStroke: '#3b82f6' },
+  { value: 'implant', label: 'زراعة', color: '#D4AF37', stroke: '#B8960C', darkColor: '#9ca3af', darkStroke: '#6b7280' },
+  { value: 'extracted', label: 'مخلوع', color: '#6b7280', stroke: '#4b5563', darkColor: '#4b5563', darkStroke: '#374151' },
+  { value: 'crown', label: 'تاج', color: '#a855f7', stroke: '#9333ea', darkColor: '#c084fc', darkStroke: '#a855f7' },
+  { value: 'root-canal', label: 'علاج عصب', color: '#f97316', stroke: '#ea580c', darkColor: '#fb923c', darkStroke: '#f97316' },
 ];
 
 export default function PatientsModule({ initialAction, onActionComplete }: { initialAction?: string | null; onActionComplete?: () => void }) {

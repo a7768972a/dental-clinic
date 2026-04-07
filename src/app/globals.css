@@ -49,23 +49,38 @@
 .dark {
   --background: 0 0% 3.9%;
   --foreground: 0 0% 98%;
-  --card: 0 0% 3.9%;
+  --card: 0 0% 7%;
   --card-foreground: 0 0% 98%;
-  --popover: 0 0% 3.9%;
+  --popover: 0 0% 7%;
   --popover-foreground: 0 0% 98%;
-  --primary: 43 74% 49%;
-  --primary-foreground: 0 0% 9%;
+  --primary: 0 0% 90%;
+  --primary-foreground: 0 0% 10%;
   --secondary: 0 0% 14.9%;
   --secondary-foreground: 0 0% 98%;
   --muted: 0 0% 14.9%;
   --muted-foreground: 0 0% 63.9%;
-  --accent: 0 0% 14.9%;
+  --accent: 0 0% 16%;
   --accent-foreground: 0 0% 98%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 14.9%;
-  --input: 0 0% 14.9%;
-  --ring: 43 74% 49%;
+  --border: 0 0% 18%;
+  --input: 0 0% 18%;
+  --ring: 0 0% 90%;
+
+  /* Chart colors - neutral in dark mode */
+  --chart-1: 0 0% 70%;
+  --chart-2: 0 0% 50%;
+  --chart-3: 0 62.8% 50%;
+  --chart-4: 142 50% 45%;
+  --chart-5: 199 60% 55%;
+
+  /* Tooth colors - adjusted for dark mode */
+  --tooth-healthy: 0 0% 85%;
+  --tooth-decay: 0 62.8% 40%;
+  --tooth-filling: 199 60% 45%;
+  --tooth-implant: 0 0% 60%;
+  --tooth-extracted: 0 0% 25%;
+  --tooth-crown: 271 60% 50%;
 }
 
 @theme inline {
@@ -121,6 +136,14 @@ html[dir="ltr"] {
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary) / 0.8);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(0 0% 35%);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(0 0% 45%);
 }
 
 /* FullCalendar RTL */
@@ -188,6 +211,11 @@ html[dir="ltr"] {
   background: linear-gradient(180deg, #D4AF37 0%, #B8960C 100%);
 }
 
+/* Dark mode: dark gray sidebar */
+.dark .gold-gradient {
+  background: linear-gradient(180deg, #1f1f1f 0%, #111111 100%);
+}
+
 /* Tooth styles */
 .tooth {
   cursor: pointer;
@@ -219,6 +247,10 @@ html[dir="ltr"] {
   stroke: #D4AF37;
 }
 
+.dark .tooth-implant {
+  stroke: #555;
+}
+
 .tooth-extracted {
   fill: hsl(var(--tooth-extracted));
   stroke: #6b7280;
@@ -239,8 +271,21 @@ html[dir="ltr"] {
   }
 }
 
+@keyframes pulse-dark {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+  }
+}
+
 .pulse-gold {
   animation: pulse-gold 2s infinite;
+}
+
+.dark .pulse-gold {
+  animation: pulse-dark 2s infinite;
 }
 
 /* Queue status indicators */
@@ -252,6 +297,11 @@ html[dir="ltr"] {
 .queue-status-waiting {
   background-color: hsl(43 74% 49% / 0.2);
   color: hsl(43 74% 35%);
+}
+
+.dark .queue-status-waiting {
+  background-color: hsl(0 0% 50% / 0.15);
+  color: hsl(0 0% 75%);
 }
 
 .queue-status-with-doctor {
@@ -291,6 +341,10 @@ html[dir="ltr"] {
   box-shadow: 0 8px 25px -5px rgba(212, 175, 55, 0.15);
 }
 
+.dark .card-hover:hover {
+  box-shadow: 0 8px 25px -5px rgba(255, 255, 255, 0.05);
+}
+
 /* Button styles */
 .btn-gold {
   background: linear-gradient(135deg, #D4AF37 0%, #B8960C 100%);
@@ -302,6 +356,16 @@ html[dir="ltr"] {
 .btn-gold:hover {
   background: linear-gradient(135deg, #F4E4BC 0%, #D4AF37 100%);
   color: #1a1a1a;
+}
+
+.dark .btn-gold {
+  background: linear-gradient(135deg, #404040 0%, #2a2a2a 100%);
+  color: #e0e0e0;
+}
+
+.dark .btn-gold:hover {
+  background: linear-gradient(135deg, #505050 0%, #383838 100%);
+  color: #fff;
 }
 
 /* Print styles */

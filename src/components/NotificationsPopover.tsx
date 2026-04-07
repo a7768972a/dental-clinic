@@ -119,11 +119,11 @@ export default function NotificationsPopover({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="fixed left-4 top-20 z-50 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border overflow-hidden"
+            className="fixed left-4 top-20 z-50 w-80 sm:w-96 bg-card rounded-xl shadow-2xl border border-border overflow-hidden"
             dir="rtl"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b bg-gradient-to-l from-[#D4AF37]/10 to-transparent">
+            <div className="flex items-center justify-between p-4 border-b bg-gradient-to-l from-primary/10 to-transparent">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <Bell className="w-5 h-5 text-primary" />
                 الإشعارات

@@ -271,7 +271,7 @@ function DentalOSContent() {
             variant="default"
             size="icon"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="fixed top-4 right-4 z-50 bg-[#D4AF37] hover:bg-[#B8960C] text-white shadow-lg"
+            className="fixed top-4 right-4 z-50 bg-primary hover:bg-primary/80 text-primary-foreground shadow-lg"
           >
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>

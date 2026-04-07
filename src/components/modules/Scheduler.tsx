@@ -177,7 +177,7 @@ export default function SchedulerModule() {
       case 'cancelled':
         return '#ef4444';
       default:
-        return '#D4AF37';
+        return 'hsl(var(--primary))';
     }
   };
 
@@ -549,7 +549,7 @@ export default function SchedulerModule() {
                   
                   {/* نتائج البحث */}
                   {showPatientSearch && patientSearch && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                       {filteredPatients.length === 0 ? (
                         <div className="p-4 text-center text-muted-foreground">
                           لا يوجد مرضى مطابقين

@@ -39,13 +39,13 @@ interface Props {
 }
 
 const toothConditions = [
-  { value: 'healthy', label: 'سليم', color: '#ffffff', stroke: '#cccccc' },
-  { value: 'decay', label: 'تسوس', color: '#ef4444', stroke: '#dc2626' },
-  { value: 'filling', label: 'حشو', color: '#3b82f6', stroke: '#2563eb' },
-  { value: 'implant', label: 'زراعة', color: '#D4AF37', stroke: '#B8960C' },
-  { value: 'extracted', label: 'مخلوع', color: '#6b7280', stroke: '#4b5563' },
-  { value: 'crown', label: 'تاج', color: '#a855f7', stroke: '#9333ea' },
-  { value: 'root-canal', label: 'علاج عصب', color: '#f97316', stroke: '#ea580c' },
+  { value: 'healthy', label: 'سليم', color: '#ffffff', stroke: '#cccccc', darkColor: '#d1d5db', darkStroke: '#9ca3af' },
+  { value: 'decay', label: 'تسوس', color: '#ef4444', stroke: '#dc2626', darkColor: '#dc2626', darkStroke: '#b91c1c' },
+  { value: 'filling', label: 'حشو', color: '#3b82f6', stroke: '#2563eb', darkColor: '#60a5fa', darkStroke: '#3b82f6' },
+  { value: 'implant', label: 'زراعة', color: '#D4AF37', stroke: '#B8960C', darkColor: '#9ca3af', darkStroke: '#6b7280' },
+  { value: 'extracted', label: 'مخلوع', color: '#6b7280', stroke: '#4b5563', darkColor: '#4b5563', darkStroke: '#374151' },
+  { value: 'crown', label: 'تاج', color: '#a855f7', stroke: '#9333ea', darkColor: '#c084fc', darkStroke: '#a855f7' },
+  { value: 'root-canal', label: 'علاج عصب', color: '#f97316', stroke: '#ea580c', darkColor: '#fb923c', darkStroke: '#f97316' },
 ];
 
 // FDI notation for teeth (Upper Right: 11-18, Upper Left: 21-28, Lower Left: 31-38, Lower Right: 41-48)
@@ -121,6 +121,16 @@ export default function DentalChart({ patientId }: Props) {
     return found || toothConditions[0];
   };
 
+  const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+
+  const getFillColor = (condition: typeof toothConditions[0]) => {
+    return isDark && condition.darkColor ? condition.darkColor : condition.color;
+  };
+
+  const getStrokeColor = (condition: typeof toothConditions[0]) => {
+    return isDark && condition.darkStroke ? condition.darkStroke : condition.stroke;
+  };
+
   const handleToothClick = (toothNumber: number) => {
     const record = toothRecords.get(toothNumber);
     setSelectedTooth(toothNumber);
@@ -185,8 +195,8 @@ export default function DentalChart({ patientId }: Props) {
           width={36}
           height={isMolar ? 40 : isPremolar ? 36 : isCanine ? 44 : 32}
           rx={isMolar ? 6 : 4}
-          fill={condition.color}
-          stroke={condition.stroke}
+          fill={getFillColor(condition)}
+          stroke={getStrokeColor(condition)}
           strokeWidth={2}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
@@ -195,12 +205,12 @@ export default function DentalChart({ patientId }: Props) {
         {/* Tooth divisions for molars */}
         {isMolar && (
           <>
-            <line x1={0} y1={15} x2={36} y2={15} stroke={condition.stroke} strokeWidth={1} />
-            <line x1={18} y1={0} x2={18} y2={40} stroke={condition.stroke} strokeWidth={1} />
+            <line x1={0} y1={15} x2={36} y2={15} stroke={getStrokeColor(condition)} strokeWidth={1} />
+            <line x1={18} y1={0} x2={18} y2={40} stroke={getStrokeColor(condition)} strokeWidth={1} />
           </>
         )}
         {isPremolar && (
-          <line x1={18} y1={0} x2={18} y2={36} stroke={condition.stroke} strokeWidth={1} />
+          <line x1={18} y1={0} x2={18} y2={36} stroke={getStrokeColor(condition)} strokeWidth={1} />
         )}
         {/* Tooth number */}
         <text
@@ -209,7 +219,7 @@ export default function DentalChart({ patientId }: Props) {
           textAnchor="middle"
           fontSize={11}
           fontWeight="bold"
-          fill="#666"
+          fill={isDark ? '#aaa' : '#666'}
         >
           {toothNumber}
         </text>
@@ -225,7 +235,7 @@ export default function DentalChart({ patientId }: Props) {
           <div key={condition.value} className="flex items-center gap-2">
             <div
               className="w-5 h-5 rounded border-2"
-              style={{ backgroundColor: condition.color, borderColor: condition.stroke }}
+              style={{ backgroundColor: getFillColor(condition), borderColor: getStrokeColor(condition) }}
             />
             <span className="text-sm">{condition.label}</span>
           </div>
@@ -236,20 +246,20 @@ export default function DentalChart({ patientId }: Props) {
       <div className="bg-muted/30 rounded-xl p-4 overflow-x-auto">
         <svg viewBox="0 0 400 300" className="w-full max-w-2xl mx-auto" dir="ltr">
           {/* Center line */}
-          <line x1={200} y1={0} x2={200} y2={300} stroke="#e5e7eb" strokeWidth={2} strokeDasharray="5,5" />
-          <line x1={0} y1={140} x2={400} y2={140} stroke="#e5e7eb" strokeWidth={2} strokeDasharray="5,5" />
+          <line x1={200} y1={0} x2={200} y2={300} stroke={isDark ? '#444' : '#e5e7eb'} strokeWidth={2} strokeDasharray="5,5" />
+          <line x1={0} y1={140} x2={400} y2={140} stroke={isDark ? '#444' : '#e5e7eb'} strokeWidth={2} strokeDasharray="5,5" />
 
           {/* Labels */}
-          <text x={100} y={20} textAnchor="middle" fontSize={12} fill="#666" fontWeight="bold">
+          <text x={100} y={20} textAnchor="middle" fontSize={12} fill={isDark ? '#aaa' : '#666'} fontWeight="bold">
             الفكي العلوي - اليمين
           </text>
-          <text x={300} y={20} textAnchor="middle" fontSize={12} fill="#666" fontWeight="bold">
+          <text x={300} y={20} textAnchor="middle" fontSize={12} fill={isDark ? '#aaa' : '#666'} fontWeight="bold">
             الفكي العلوي - اليسار
           </text>
-          <text x={100} y={290} textAnchor="middle" fontSize={12} fill="#666" fontWeight="bold">
+          <text x={100} y={290} textAnchor="middle" fontSize={12} fill={isDark ? '#aaa' : '#666'} fontWeight="bold">
             الفكي السفلي - اليمين
           </text>
-          <text x={300} y={290} textAnchor="middle" fontSize={12} fill="#666" fontWeight="bold">
+          <text x={300} y={290} textAnchor="middle" fontSize={12} fill={isDark ? '#aaa' : '#666'} fontWeight="bold">
             الفكي السفلي - اليسار
           </text>
 
@@ -315,8 +325,8 @@ export default function DentalChart({ patientId }: Props) {
                         <div
                           className="w-4 h-4 rounded border"
                           style={{
-                            backgroundColor: condition.color,
-                            borderColor: condition.stroke,
+                            backgroundColor: getFillColor(condition),
+                            borderColor: getStrokeColor(condition),
                           }}
                         />
                         {condition.label}
