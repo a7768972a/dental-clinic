@@ -29,7 +29,7 @@ export async function DELETE(
     if (installmentPlan) {
       // Delete installment payments first
       await db.installmentPayment.deleteMany({
-        where: { installmentPlanId: installmentPlan.id },
+        where: { planId: installmentPlan.id },
       });
 
       // Delete the installment plan
@@ -56,7 +56,8 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Invoice deleted successfully' });
   } catch (error) {
     console.error('Error deleting invoice:', error);
-    return NextResponse.json({ error: 'Failed to delete invoice' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Failed to delete invoice';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

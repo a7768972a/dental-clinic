@@ -128,7 +128,7 @@ model InvoiceItem {
 model Payment {
   id          String   @id @default(cuid())
   invoiceId   String
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   amount      Float
   method      String   // cash, card, transfer
   reference   String?
@@ -142,7 +142,7 @@ model Payment {
 model InstallmentPlan {
   id              String   @id @default(cuid())
   invoiceId       String   @unique
-  invoice         Invoice  @relation(fields: [invoiceId], references: [id])
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   totalAmount     Float
   numberOfMonths  Int
   monthlyAmount   Float
@@ -163,7 +163,7 @@ model InstallmentPlan {
 model InstallmentPayment {
   id                String   @id @default(cuid())
   planId            String
-  plan              InstallmentPlan @relation(fields: [planId], references: [id])
+  plan              InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
   installmentNumber Int
   amount            Float
   dueDate           DateTime
