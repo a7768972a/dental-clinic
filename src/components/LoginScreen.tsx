@@ -42,9 +42,7 @@ export default function LoginScreen() {
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="w-[110px] h-[110px] mx-auto mb-4 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#B8960C] p-[3px] shadow-lg">
-              <div className="w-full h-full rounded-full bg-card p-2">
-                <img src="/login-logo.png" alt="شعار العيادة" className="w-full h-full object-contain" />
-              </div>
+              <img src="/login-logo-gold.png" alt="شعار العيادة" className="w-full h-full rounded-full object-contain" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">نظام إدارة العيادة</h1>
             <p className="text-gray-500 mt-2">أدخل كلمة المرور للدخول</p>
