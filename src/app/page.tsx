@@ -228,7 +228,7 @@ function DentalOSContent() {
                 {customLogo ? (
                   <img src={customLogo} alt="Clinic Logo" className="w-full h-full object-cover" />
                 ) : (
-                  <img src="/dental-logo.svg" alt="Dental Logo" className="w-10 h-10" />
+                  <img src="/login-logo-gold.png" alt="Dental Logo" className="w-10 h-10" />
                 )}
               </div>
               <div className="flex-1">
@@ -304,7 +304,7 @@ function DentalOSContent() {
                         {customLogo ? (
                           <img src={customLogo} alt="Clinic Logo" className="w-full h-full object-cover" />
                         ) : (
-                          <img src="/dental-logo.svg" alt="Dental Logo" className="w-12 h-12" />
+                          <img src="/login-logo-gold.png" alt="Dental Logo" className="w-12 h-12" />
                         )}
                       </div>
                       <div>

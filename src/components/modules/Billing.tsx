@@ -24,13 +24,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -207,19 +201,16 @@ export default function BillingModule() {
                 className="pr-10"
               />
             </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="جميع الفئات" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">جميع الفئات</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              options={[
+                { value: 'all', label: 'جميع الفئات' },
+                ...categories.map((cat) => ({ value: cat.value, label: cat.label })),
+              ]}
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              placeholder="جميع الفئات"
+              className="w-full sm:w-48"
+            />
           </div>
         </CardContent>
       </Card>
@@ -342,21 +333,12 @@ export default function BillingModule() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الفئة</Label>
-                <Select
+                <SearchableSelect
+                  options={categories.map((cat) => ({ value: cat.value, label: cat.label }))}
                   value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(value) => setFormData({ ...formData, category: value })}
+                  placeholder="اختر الفئة"
+                />
               </div>
               <div className="space-y-2">
                 <Label>المدة (بالدقائق)</Label>

@@ -42,7 +42,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
@@ -548,7 +548,7 @@ export default function SchedulerModule() {
                   />
                   
                   {/* نتائج البحث */}
-                  {showPatientSearch && patientSearch && (
+                  {showPatientSearch && (
                     <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                       {filteredPatients.length === 0 ? (
                         <div className="p-4 text-center text-muted-foreground">
@@ -578,35 +578,21 @@ export default function SchedulerModule() {
 
             <div className="space-y-2">
               <Label>الخدمة</Label>
-              <Select
+              <SearchableSelect
+                options={services.map((s) => ({
+                  value: s.id,
+                  label: `${s.nameAr} - ${s.price} ل.س (${s.duration} دقيقة)`,
+                }))}
                 value={formData.serviceId}
-                onValueChange={(value) => {
+                onChange={(value) => {
                   const service = services.find((s) => s.id === value);
                   setFormData({
                     ...formData,
                     serviceId: value,
-                    endTime: service
-                      ? new Date(
-                          new Date(`${formData.date}T${formData.startTime}`).getTime() +
-                            service.duration * 60000
-                        )
-                          .toTimeString()
-                          .slice(0, 5)
-                      : formData.endTime,
                   });
                 }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر الخدمة" />
-                </SelectTrigger>
-                <SelectContent>
-                  {services.map((service) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.nameAr} - {service.price} ل.س ({service.duration} دقيقة)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="اختر الخدمة"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -621,20 +607,17 @@ export default function SchedulerModule() {
               </div>
               <div className="space-y-2">
                 <Label>الحالة</Label>
-                <Select
+                <SearchableSelect
+                  options={[
+                    { value: 'scheduled', label: 'مجدول' },
+                    { value: 'confirmed', label: 'مؤكد' },
+                    { value: 'completed', label: 'مكتمل' },
+                    { value: 'cancelled', label: 'ملغي' },
+                  ]}
                   value={formData.status}
-                  onValueChange={(value) => setFormData({ ...formData, status: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="scheduled">مجدول</SelectItem>
-                    <SelectItem value="confirmed">مؤكد</SelectItem>
-                    <SelectItem value="completed">مكتمل</SelectItem>
-                    <SelectItem value="cancelled">ملغي</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(value) => setFormData({ ...formData, status: value })}
+                  placeholder="اختر الحالة"
+                />
               </div>
             </div>
 
@@ -650,22 +633,19 @@ export default function SchedulerModule() {
               </div>
               <div className="space-y-2">
                 <Label>المدة</Label>
-                <Select
+                <SearchableSelect
+                  options={[
+                    { value: '30', label: '30 دقيقة (نصف ساعة)' },
+                    { value: '60', label: '60 دقيقة (ساعة واحدة)' },
+                    { value: '90', label: '90 دقيقة (ساعة ونصف)' },
+                    { value: '120', label: '120 دقيقة (ساعتان)' },
+                    { value: '150', label: '150 دقيقة (ساعتان ونصف)' },
+                    { value: '180', label: '180 دقيقة (3 ساعات)' },
+                  ]}
                   value={formData.duration.toString()}
-                  onValueChange={(value) => setFormData({ ...formData, duration: parseInt(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="15">15 دقيقة</SelectItem>
-                    <SelectItem value="30">30 دقيقة</SelectItem>
-                    <SelectItem value="45">45 دقيقة</SelectItem>
-                    <SelectItem value="60">ساعة واحدة</SelectItem>
-                    <SelectItem value="90">ساعة ونصف</SelectItem>
-                    <SelectItem value="120">ساعتان</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(value) => setFormData({ ...formData, duration: parseInt(value) })}
+                  placeholder="اختر المدة"
+                />
               </div>
             </div>
 

@@ -38,18 +38,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 
 interface Invoice {
   id: string;
@@ -961,21 +955,12 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
           <form onSubmit={handleAddExpense} className="space-y-4">
             <div className="space-y-2">
               <Label>الفئة</Label>
-              <Select
+              <SearchableSelect
+                options={expenseCategories.map((cat) => ({ value: cat.value, label: cat.label }))}
                 value={expenseForm.category}
-                onValueChange={(value) => setExpenseForm({ ...expenseForm, category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {expenseCategories.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(value) => setExpenseForm({ ...expenseForm, category: value })}
+                placeholder="اختر الفئة"
+              />
             </div>
             
             <div className="space-y-2">
@@ -1061,19 +1046,16 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
 
             <div className="space-y-2">
               <Label>طريقة الدفع</Label>
-              <Select
+              <SearchableSelect
+                options={[
+                  { value: 'cash', label: 'نقداً' },
+                  { value: 'card', label: 'بطاقة' },
+                  { value: 'transfer', label: 'تحويل' },
+                ]}
                 value={paymentForm.method}
-                onValueChange={(value) => setPaymentForm({ ...paymentForm, method: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">نقداً</SelectItem>
-                  <SelectItem value="card">بطاقة</SelectItem>
-                  <SelectItem value="transfer">تحويل</SelectItem>
-                </SelectContent>
-              </Select>
+                onChange={(value) => setPaymentForm({ ...paymentForm, method: value })}
+                placeholder="اختر طريقة الدفع"
+              />
             </div>
 
             <div className="space-y-2">
@@ -1328,21 +1310,18 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
             {invoiceForm.paymentType === 'immediate' && (
               <div className="space-y-3 p-4 bg-green-50 rounded-lg border border-green-200">
                 <Label className="font-semibold text-green-700">طريقة الدفع</Label>
-                <Select
+                <SearchableSelect
+                  options={[
+                    { value: 'cash', label: 'نقداً' },
+                    { value: 'card', label: 'بطاقة' },
+                    { value: 'transfer', label: 'تحويل' },
+                  ]}
                   value={invoiceForm.paymentMethod}
-                  onValueChange={(value: 'cash' | 'card' | 'transfer') =>
-                    setInvoiceForm({ ...invoiceForm, paymentMethod: value })
+                  onChange={(value) =>
+                    setInvoiceForm({ ...invoiceForm, paymentMethod: value as 'cash' | 'card' | 'transfer' })
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">نقداً</SelectItem>
-                    <SelectItem value="card">بطاقة</SelectItem>
-                    <SelectItem value="transfer">تحويل</SelectItem>
-                  </SelectContent>
-                </Select>
+                  placeholder="اختر طريقة الدفع"
+                />
               </div>
             )}
 
@@ -1353,23 +1332,17 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>عدد الأقساط</Label>
-                    <Select
+                    <SearchableSelect
+                      options={[3, 6, 9, 12, 18, 24].map((months) => ({
+                        value: months.toString(),
+                        label: `${months} أقساط`,
+                      }))}
                       value={invoiceForm.numberOfMonths.toString()}
-                      onValueChange={(value) =>
+                      onChange={(value) =>
                         setInvoiceForm({ ...invoiceForm, numberOfMonths: parseInt(value) })
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[3, 6, 9, 12, 18, 24].map((months) => (
-                          <SelectItem key={months} value={months.toString()}>
-                            {months} أقساط
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="اختر عدد الأقساط"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>الدفعة الأولى (ل.س)</Label>

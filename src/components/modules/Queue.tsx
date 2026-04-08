@@ -185,7 +185,7 @@ export default function QueueModule() {
               {clinicLogo ? (
                 <img src={clinicLogo} alt="Clinic Logo" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-3xl font-bold">سن</span>
+                <img src="/login-logo-gold.png" alt="شعار العيادة" className="w-10 h-10 object-contain" />
               )}
             </div>
             <div>

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 
 interface Patient {
   id: string;
@@ -158,12 +159,12 @@ export default function QuickBookingModule({ onSuccess }: Props) {
   }
 
   const durationOptions = [
-    { value: 15, label: '15 دقيقة' },
-    { value: 30, label: '30 دقيقة' },
-    { value: 45, label: '45 دقيقة' },
-    { value: 60, label: 'ساعة واحدة' },
-    { value: 90, label: 'ساعة ونصف' },
-    { value: 120, label: 'ساعتان' },
+    { value: 30, label: '30 دقيقة (نصف ساعة)' },
+    { value: 60, label: '60 دقيقة (ساعة واحدة)' },
+    { value: 90, label: '90 دقيقة (ساعة ونصف)' },
+    { value: 120, label: '120 دقيقة (ساعتان)' },
+    { value: 150, label: '150 دقيقة (ساعتان ونصف)' },
+    { value: 180, label: '180 دقيقة (3 ساعات)' },
   ];
 
   return (
@@ -258,7 +259,7 @@ export default function QuickBookingModule({ onSuccess }: Props) {
                         />
                         
                         {/* نتائج البحث */}
-                        {showPatientSearch && patientSearch && (
+                        {showPatientSearch && (
                           <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                             {filteredPatients.length === 0 ? (
                               <div className="p-4 text-center text-muted-foreground">
@@ -326,31 +327,21 @@ export default function QuickBookingModule({ onSuccess }: Props) {
                 </div>
                 <div className="space-y-2">
                   <Label>وقت الموعد</Label>
-                  <select
+                  <SearchableSelect
+                    options={availableSlots.map((slot) => ({ value: slot, label: slot }))}
                     value={formData.startTime}
-                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                    className="w-full h-10 px-3 rounded-md border bg-background"
-                  >
-                    {availableSlots.map((slot) => (
-                      <option key={slot} value={slot}>
-                        {slot}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => setFormData({ ...formData, startTime: value })}
+                    placeholder="اختر الوقت"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>المدة</Label>
-                  <select
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                    className="w-full h-10 px-3 rounded-md border bg-background"
-                  >
-                    {durationOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    options={durationOptions.map((opt) => ({ value: opt.value.toString(), label: opt.label }))}
+                    value={formData.duration.toString()}
+                    onChange={(value) => setFormData({ ...formData, duration: parseInt(value) })}
+                    placeholder="اختر المدة"
+                  />
                 </div>
               </div>
 
