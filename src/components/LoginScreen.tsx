@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Eye, EyeOff, LogIn } from 'lucide-react';
+import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,8 +41,8 @@ export default function LoginScreen() {
         <div className="bg-card rounded-2xl shadow-2xl p-8 border border-border">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center">
-              <Lock className="w-10 h-10 text-white" />
+            <div className="w-24 h-24 mx-auto mb-4 rounded-2xl overflow-hidden shadow-lg">
+              <img src="/login-logo.png" alt="شعار العيادة" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">نظام إدارة العيادة</h1>
             <p className="text-gray-500 mt-2">أدخل كلمة المرور للدخول</p>
