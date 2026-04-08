@@ -41,8 +41,8 @@ export default function LoginScreen() {
         <div className="bg-card rounded-2xl shadow-2xl p-8 border border-border">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#B8960C] p-[3px] shadow-lg">
-              <div className="w-full h-full rounded-full bg-card p-[3px]">
+            <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#B8960C] p-1.5 shadow-lg">
+              <div className="w-full h-full rounded-full bg-card p-2">
                 <img src="/login-logo.png" alt="شعار العيادة" className="w-full h-full object-contain rounded-full" />
               </div>
             </div>
