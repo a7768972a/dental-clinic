@@ -41,7 +41,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+
 import { toast } from 'sonner';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 
@@ -1269,28 +1269,31 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
             {/* Payment Type */}
             <div className="space-y-3">
               <Label className="text-base font-semibold">طريقة الدفع</Label>
-              <RadioGroup
-                value={invoiceForm.paymentType}
-                onValueChange={(value: 'immediate' | 'installment') =>
-                  setInvoiceForm({ ...invoiceForm, paymentType: value })
-                }
-                className="grid grid-cols-2 gap-4"
-              >
+              <div className="grid grid-cols-2 gap-4">
                 <div
                   className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
                     invoiceForm.paymentType === 'immediate'
                       ? 'border-primary bg-primary/5'
                       : 'border-border hover:border-primary/50'
                   }`}
-                  onClick={() => setInvoiceForm({ ...invoiceForm, paymentType: 'immediate' })}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setInvoiceForm(prev => ({ ...prev, paymentType: 'immediate' }));
+                  }}
                 >
-                  <RadioGroupItem value="immediate" id="immediate" />
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    invoiceForm.paymentType === 'immediate' ? 'border-primary' : 'border-muted-foreground'
+                  }`}>
+                    {invoiceForm.paymentType === 'immediate' && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                    )}
+                  </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <Wallet className="w-5 h-5 text-primary" />
-                      <Label htmlFor="immediate" className="font-semibold cursor-pointer">
+                      <span className="font-semibold">
                         دفع فوري
-                      </Label>
+                      </span>
                     </div>
                     <p className="text-sm text-muted-foreground">دفع المبلغ كاملاً</p>
                   </div>
@@ -1302,20 +1305,29 @@ export default function AccountingModule({ initialAction, onActionComplete }: { 
                       ? 'border-primary bg-primary/5'
                       : 'border-border hover:border-primary/50'
                   }`}
-                  onClick={() => setInvoiceForm({ ...invoiceForm, paymentType: 'installment' })}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setInvoiceForm(prev => ({ ...prev, paymentType: 'installment' }));
+                  }}
                 >
-                  <RadioGroupItem value="installment" id="installment" />
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    invoiceForm.paymentType === 'installment' ? 'border-primary' : 'border-muted-foreground'
+                  }`}>
+                    {invoiceForm.paymentType === 'installment' && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                    )}
+                  </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <CalendarClock className="w-5 h-5 text-primary" />
-                      <Label htmlFor="installment" className="font-semibold cursor-pointer">
+                      <span className="font-semibold">
                         تقسيط
-                      </Label>
+                      </span>
                     </div>
                     <p className="text-sm text-muted-foreground">دفع على أقساط</p>
                   </div>
                 </div>
-              </RadioGroup>
+              </div>
             </div>
 
             {/* Immediate Payment Options */}
