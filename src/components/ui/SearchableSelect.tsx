@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Search, ChevronDown, X } from 'lucide-react';
 
 /*
@@ -41,17 +41,41 @@ export default function SearchableSelect({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // إغلاق القائمة عند الضغط خارجها
+  const close = useCallback(() => {
+    setIsOpen(false);
+    setSearch('');
+  }, []);
+
+  // إغلاق القائمة عند الضغط خارجها - باستخدام pointerdown + mousedown للتوافق الكامل
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent | PointerEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-        setSearch('');
+        close();
       }
     };
+
+    // نستخدم عدة أنواع أحداث لضمان العمل داخل Dialog وغيرها
+    document.addEventListener('pointerdown', handleClickOutside);
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('touchstart', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('pointerdown', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [close]);
+
+  // إغلاق عند الضغط على Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        close();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, close]);
 
   // تصفية الخيارات حسب البحث
   const filteredOptions = options.filter((option) =>
@@ -66,23 +90,21 @@ export default function SearchableSelect({
     if (disabled) return;
     setIsOpen(true);
     setSearch('');
-    // تأخير بسيط لضمان فتح القائمة قبل التركيز
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
   // اختيار عنصر
   const handleSelect = (optionValue: string) => {
     onChange(optionValue);
-    setIsOpen(false);
-    setSearch('');
+    close();
   };
 
   // إزالة الاختيار
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     onChange('');
-    setIsOpen(false);
-    setSearch('');
+    close();
   };
 
   return (
@@ -109,8 +131,7 @@ export default function SearchableSelect({
             dir="rtl"
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
-                setIsOpen(false);
-                setSearch('');
+                close();
               }
               if (e.key === 'Enter' && filteredOptions.length === 1) {
                 handleSelect(filteredOptions[0].value);
@@ -136,7 +157,7 @@ export default function SearchableSelect({
 
       {/* القائمة المنسدلة */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-[999] w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {filteredOptions.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground text-sm">
               لا توجد نتائج مطابقة
@@ -151,6 +172,9 @@ export default function SearchableSelect({
                   hover:bg-muted transition-colors
                   ${value === option.value ? 'bg-primary/10 text-primary font-medium' : 'text-foreground'}
                 `}
+                onMouseDown={(e) => {
+                  e.preventDefault(); // منع blur قبل النقر
+                }}
                 onClick={() => handleSelect(option.value)}
               >
                 {option.label}

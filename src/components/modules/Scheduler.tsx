@@ -107,6 +107,18 @@ export default function SchedulerModule() {
   const [patientSearch, setPatientSearch] = useState('');
   const [showPatientSearch, setShowPatientSearch] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const patientSearchRef = useRef<HTMLDivElement>(null);
+
+  // إغلاق قائمة بحث المريض عند الضغط خارجها
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (patientSearchRef.current && !patientSearchRef.current.contains(e.target as Node)) {
+        setShowPatientSearch(false);
+      }
+    };
+    document.addEventListener('pointerdown', handleClickOutside);
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
+  }, []);
 
   // تأكيد سحب الموعد
   const [showDropConfirm, setShowDropConfirm] = useState(false);
@@ -534,7 +546,7 @@ export default function SchedulerModule() {
                 </div>
               ) : (
                 /* مربع البحث */
-                <div className="relative">
+                <div className="relative" ref={patientSearchRef}>
                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     placeholder="ابحث عن مريض (الاسم أو رقم الهاتف)..."

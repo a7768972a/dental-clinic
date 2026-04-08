@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarPlus, Clock, User, Phone, FileText, CheckCircle, Search, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +30,18 @@ export default function QuickBookingModule({ onSuccess }: Props) {
   const [patientSearch, setPatientSearch] = useState('');
   const [showPatientSearch, setShowPatientSearch] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const patientSearchRef = useRef<HTMLDivElement>(null);
+
+  // إغلاق قائمة بحث المريض عند الضغط خارجها
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (patientSearchRef.current && !patientSearchRef.current.contains(e.target as Node)) {
+        setShowPatientSearch(false);
+      }
+    };
+    document.addEventListener('pointerdown', handleClickOutside);
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
+  }, []);
   
   const [formData, setFormData] = useState({
     patientId: '',
@@ -245,7 +257,7 @@ export default function QuickBookingModule({ onSuccess }: Props) {
                       </div>
                     ) : (
                       /* مربع البحث */
-                      <div className="relative">
+                      <div className="relative" ref={patientSearchRef}>
                         <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                           placeholder="ابحث عن مريض (الاسم أو رقم الهاتف)..."
