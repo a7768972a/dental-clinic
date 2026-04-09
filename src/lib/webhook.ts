@@ -161,3 +161,88 @@ export async function sendWebhook(
     return { success: false, message: errorMessage };
   }
 }
+
+/**
+ * إرسال webhook لقبول أو رفض حجز واتساب
+ * يُستدعى عند قبول أو رفض موعد واتساب بانتظار الموافقة
+ */
+export async function sendBookingResponseWebhook(
+  event: 'whatsapp_booking_accepted' | 'whatsapp_booking_rejected',
+  data: {
+    patientPhone: string;
+    patientName: string;
+    appointmentTimeFormatted?: string;
+    serviceName?: string;
+    reason?: string;
+  }
+): Promise<{ success: boolean; message: string }> {
+  try {
+    // جلب رابط الـ webhook من الإعدادات
+    const webhookSetting = await db.setting.findUnique({
+      where: { key: 'n8nWebhookUrl' },
+    });
+
+    if (!webhookSetting?.value) {
+      return { success: false, message: 'Webhook URL not configured' };
+    }
+
+    // جلب اسم العيادة
+    const clinicNameSetting = await db.setting.findUnique({
+      where: { key: 'clinicName' },
+    });
+
+    const payload = {
+      event,
+      patientPhone: data.patientPhone,
+      patientName: data.patientName,
+      appointmentTimeFormatted: data.appointmentTimeFormatted,
+      serviceName: data.serviceName,
+      reason: data.reason,
+      clinicName: clinicNameSetting?.value || 'عيادة الأسنان',
+      timestamp: new Date().toISOString(),
+    };
+
+    // إرسال الـ webhook
+    const response = await fetch(webhookSetting.value, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    // تسجيل العملية
+    await db.automationLog.create({
+      data: {
+        type: event,
+        source: 'system',
+        payload: JSON.stringify(payload),
+        status: response.ok ? 'success' : 'failed',
+        message: response.ok ? 'Booking response webhook sent successfully' : `HTTP ${response.status}`,
+      },
+    });
+
+    if (response.ok) {
+      return { success: true, message: 'Webhook sent successfully' };
+    } else {
+      return { success: false, message: `HTTP ${response.status}` };
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    try {
+      await db.automationLog.create({
+        data: {
+          type: event,
+          source: 'system',
+          payload: JSON.stringify({ error: errorMessage }),
+          status: 'failed',
+          message: errorMessage,
+        },
+      });
+    } catch {
+      // Ignore log errors
+    }
+
+    return { success: false, message: errorMessage };
+  }
+}

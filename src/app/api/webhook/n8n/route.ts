@@ -17,6 +17,42 @@ export async function POST(request: Request) {
       },
     });
 
+    // Handle WhatsApp pending booking (needs approval)
+    if (body.type === 'whatsapp_booking') {
+      await db.pendingAppointment.create({
+        data: {
+          patientName: body.patientName || 'غير معروف',
+          patientPhone: body.patientPhone || '',
+          serviceName: body.serviceName || null,
+          appointmentTime: new Date(body.appointmentTime),
+          sourceMessageId: body.sourceMessageId || null,
+          notes: body.notes || null,
+          status: 'pending',
+        },
+      });
+
+      // Create notification
+      await db.notification.create({
+        data: {
+          type: 'booking',
+          title: 'حجز واتساب بانتظار الموافقة',
+          message: `حجز جديد بانتظار الموافقة: ${body.patientName || 'غير معروف'} - ${body.serviceName || 'خدمة عامة'}`,
+          source: 'whatsapp',
+          data: JSON.stringify({
+            patientName: body.patientName,
+            patientPhone: body.patientPhone,
+            serviceName: body.serviceName,
+            appointmentTime: body.appointmentTime,
+          }),
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'WhatsApp booking received and pending approval',
+      });
+    }
+
     // Handle different webhook types
     if (body.type === 'booking' || body.patientName) {
       // Create or find patient

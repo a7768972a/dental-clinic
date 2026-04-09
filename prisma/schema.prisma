@@ -238,6 +238,24 @@ model Notification {
   @@index([createdAt])
 }
 
+// مواعيد واتساب بانتظار الموافقة
+model PendingAppointment {
+  id              String   @id @default(cuid())
+  patientName     String
+  patientPhone    String
+  serviceName     String?
+  appointmentTime DateTime
+  status          String   @default("pending") // pending, accepted, rejected
+  rejectReason    String?
+  notes           String?
+  sourceMessageId String?  // رقم رسالة الواتساب الأصلية
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([status])
+  @@index([createdAt])
+}
+
 // سجلات الأتمتة (n8n webhooks)
 model AutomationLog {
   id          String   @id @default(cuid())

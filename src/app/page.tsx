@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   LogOut,
+  MessageCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,7 @@ import QuickBookingModule from '@/components/modules/QuickBooking';
 import AccountingModule from '@/components/modules/Accounting';
 import QueueModule from '@/components/modules/Queue';
 import SettingsModule from '@/components/modules/Settings';
+import WhatsAppBookings from '@/components/modules/WhatsAppBookings';
 
 // Import auth and notifications
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -55,6 +57,7 @@ const menuItems = [
   { id: 'quick-booking', label: 'حجز موعد', icon: CalendarPlus },
   { id: 'accounting', label: 'الفواتير والنفقات', icon: Receipt },
   { id: 'queue', label: 'صالة الانتظار', icon: Users2 },
+  { id: 'whatsapp-bookings', label: 'حجوزات الواتساب', icon: MessageCircle },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
 ];
 
@@ -69,6 +72,7 @@ function DentalOSContent() {
   const [customLogo, setCustomLogo] = useState<string | null>(null);
   const [moduleAction, setModuleAction] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   // Load sidebar preference and logo
   useEffect(() => {
@@ -160,7 +164,32 @@ function DentalOSContent() {
     };
   }, []);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  // Fetch pending WhatsApp appointments count
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchPendingCount = async () => {
+      try {
+        const res = await fetch('/api/pending-appointments');
+        const data = await res.json();
+        if (mounted && typeof data.pendingCount === 'number') {
+          setPendingCount(data.pendingCount);
+        }
+      } catch (error) {
+        console.error('Error fetching pending count:', error);
+      }
+    };
+
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 30000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const unreadCount = notifications.filter((n) => !n.read).length + pendingCount;
 
   // عرض شاشة التحميل
   if (isLoading) {
@@ -192,6 +221,8 @@ function DentalOSContent() {
         return <AccountingModule initialAction={moduleAction} onActionComplete={() => setModuleAction(null)} />;
       case 'queue':
         return <QueueModule />;
+      case 'whatsapp-bookings':
+        return <WhatsAppBookings />;
       case 'settings':
         return <SettingsModule />;
       default:
