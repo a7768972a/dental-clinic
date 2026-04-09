@@ -113,12 +113,17 @@ export async function PUT(
         timeZone: CLINIC_TIMEZONE,
       });
 
+      // Extract chatId from notes if available (format: [chatId:123456])
+      const chatIdMatch = pending.notes?.match(/\[chatId:(\d+)\]/);
+      const chatId = chatIdMatch ? chatIdMatch[1] : null;
+
       // Send webhook (async - don't wait)
       sendBookingResponseWebhook('whatsapp_booking_accepted', {
         patientPhone: pending.patientPhone,
         patientName: pending.patientName,
         appointmentTimeFormatted,
         serviceName: pending.serviceName || undefined,
+        chatId: chatId || undefined,
       }).catch((err) => console.error('Accept webhook error:', err));
 
       return NextResponse.json({
@@ -151,11 +156,16 @@ export async function PUT(
         },
       });
 
+      // Extract chatId from notes if available (format: [chatId:123456])
+      const chatIdMatch = pending.notes?.match(/\[chatId:(\d+)\]/);
+      const chatId = chatIdMatch ? chatIdMatch[1] : null;
+
       // Send webhook (async - don't wait)
       sendBookingResponseWebhook('whatsapp_booking_rejected', {
         patientPhone: pending.patientPhone,
         patientName: pending.patientName,
         reason,
+        chatId: chatId || undefined,
       }).catch((err) => console.error('Reject webhook error:', err));
 
       return NextResponse.json({

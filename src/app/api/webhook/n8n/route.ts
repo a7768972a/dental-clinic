@@ -17,8 +17,14 @@ export async function POST(request: Request) {
       },
     });
 
-    // Handle WhatsApp pending booking (needs approval)
+    // Handle WhatsApp/Telegram pending booking (needs approval)
     if (body.type === 'whatsapp_booking') {
+      // حفظ chatId في notes مع أي ملاحظات إضافية
+      let notes = body.notes || '';
+      if (body.chatId) {
+        notes = notes ? `${notes} [chatId:${body.chatId}]` : `[chatId:${body.chatId}]`;
+      }
+
       await db.pendingAppointment.create({
         data: {
           patientName: body.patientName || 'غير معروف',
@@ -26,7 +32,7 @@ export async function POST(request: Request) {
           serviceName: body.serviceName || null,
           appointmentTime: new Date(body.appointmentTime),
           sourceMessageId: body.sourceMessageId || null,
-          notes: body.notes || null,
+          notes: notes || null,
           status: 'pending',
         },
       });
@@ -37,12 +43,13 @@ export async function POST(request: Request) {
           type: 'booking',
           title: 'حجز واتساب بانتظار الموافقة',
           message: `حجز جديد بانتظار الموافقة: ${body.patientName || 'غير معروف'} - ${body.serviceName || 'خدمة عامة'}`,
-          source: 'whatsapp',
+          source: body.source || 'whatsapp',
           data: JSON.stringify({
             patientName: body.patientName,
             patientPhone: body.patientPhone,
             serviceName: body.serviceName,
             appointmentTime: body.appointmentTime,
+            chatId: body.chatId || null,
           }),
         },
       });

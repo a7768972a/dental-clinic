@@ -174,6 +174,7 @@ export async function sendBookingResponseWebhook(
     appointmentTimeFormatted?: string;
     serviceName?: string;
     reason?: string;
+    chatId?: string;
   }
 ): Promise<{ success: boolean; message: string }> {
   try {
@@ -198,6 +199,7 @@ export async function sendBookingResponseWebhook(
       appointmentTimeFormatted: data.appointmentTimeFormatted,
       serviceName: data.serviceName,
       reason: data.reason,
+      chatId: data.chatId,
       clinicName: clinicNameSetting?.value || 'عيادة الأسنان',
       timestamp: new Date().toISOString(),
     };
