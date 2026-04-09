@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
+import { sendWebhook } from '@/lib/webhook';
 
 export async function GET() {
   try {
@@ -53,6 +54,27 @@ export async function POST(request: Request) {
         }),
       },
     });
+
+    // إرسال webhook إلى n8n (غير متزامن - لا ينتظر النتيجة)
+    sendWebhook('appointment_created', {
+      id: appointment.id,
+      title: appointment.title,
+      startTime: appointment.startTime,
+      endTime: appointment.endTime,
+      status: appointment.status,
+      notes: appointment.notes || undefined,
+      patient: appointment.patient ? {
+        id: appointment.patient.id,
+        name: appointment.patient.name,
+        phone: appointment.patient.phone,
+      } : null,
+      service: appointment.service ? {
+        id: appointment.service.id,
+        name: appointment.service.name,
+        nameAr: appointment.service.nameAr,
+        price: appointment.service.price,
+      } : null,
+    }).catch(err => console.error('Webhook error (appointment_created):', err));
 
     return NextResponse.json({ appointment });
   } catch (error) {
