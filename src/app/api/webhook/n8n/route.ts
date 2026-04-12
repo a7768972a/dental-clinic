@@ -1,11 +1,111 @@
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
-// This endpoint receives webhook data from n8n (WhatsApp bookings)
+// Parse n8n array format: ["Name :value", "Phone Number :value", "Date :value", "Time :value", "Issue :value"]
+function parseArrayFormat(data: unknown): Record<string, string> {
+  const result: Record<string, string> = {};
+
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      const str = String(item);
+      const colonIndex = str.indexOf(':');
+      if (colonIndex > -1) {
+        const key = str.slice(0, colonIndex).trim().toLowerCase();
+        const value = str.slice(colonIndex + 1).trim();
+        if (key.includes('name')) result.patientName = value;
+        else if (key.includes('phone') || key.includes('number')) result.patientPhone = value;
+        else if (key.includes('date')) result.date = value;
+        else if (key.includes('time') || key.includes('slot')) result.time = value;
+        else if (key.includes('issue') || key.includes('notes') || key.includes('reason')) result.issue = value;
+      }
+    }
+  } else if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+    if (obj.patientName) result.patientName = String(obj.patientName);
+    if (obj.name) result.patientName = String(obj.name);
+    if (obj.patientPhone) result.patientPhone = String(obj.patientPhone);
+    if (obj.phone) result.patientPhone = String(obj.phone);
+    if (obj.phoneNumber) result.patientPhone = String(obj.phoneNumber);
+    if (obj.date) result.date = String(obj.date);
+    if (obj.time) result.time = String(obj.time);
+    if (obj.notes) result.issue = String(obj.notes);
+    if (obj.issue) result.issue = String(obj.issue);
+    if (obj.serviceName) result.serviceName = String(obj.serviceName);
+  }
+
+  return result;
+}
+
+// This endpoint receives webhook data from n8n (WhatsApp/Telegram bookings)
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     
+    // Try to parse array format from n8n
+    const parsed = parseArrayFormat(body);
+    const hasParsedData = Object.keys(parsed).length > 0;
+    
+    // If n8n sent array format, create pending appointment from it
+    if (hasParsedData) {
+      const { patientName, patientPhone, date, time, issue, serviceName } = parsed;
+      
+      if (!patientName || !patientPhone) {
+        return NextResponse.json({
+          success: false,
+          error: 'Missing required fields (patientName, patientPhone)',
+          received: parsed,
+        }, { status: 400 });
+      }
+
+      // Build appointmentTime from date + time
+      let appointmentTime: Date;
+      if (date && time) {
+        appointmentTime = new Date(`${date}T${time}:00`);
+      } else if (date) {
+        appointmentTime = new Date(date);
+      } else {
+        appointmentTime = new Date();
+      }
+
+      await db.pendingAppointment.create({
+        data: {
+          patientName: patientName,
+          patientPhone: patientPhone,
+          serviceName: serviceName || issue || null,
+          appointmentTime: appointmentTime,
+          notes: issue || null,
+          status: 'pending',
+        },
+      });
+
+      // Log the incoming webhook
+      await db.automationLog.create({
+        data: {
+          type: 'booking',
+          source: 'n8n',
+          payload: JSON.stringify(body),
+          status: 'success',
+          message: `Pending appointment created for ${patientName}`,
+        },
+      });
+
+      // Create notification
+      await db.notification.create({
+        data: {
+          type: 'booking',
+          title: 'حجز جديد بانتظار الموافقة',
+          message: `حجز جديد: ${patientName} - ${date || ''} ${time || ''}`,
+          source: 'n8n',
+          data: JSON.stringify(parsed),
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Booking received and pending approval',
+      });
+    }
+
     // Log the incoming webhook
     await db.automationLog.create({
       data: {
@@ -19,7 +119,6 @@ export async function POST(request: Request) {
 
     // Handle WhatsApp/Telegram pending booking (needs approval)
     if (body.type === 'whatsapp_booking') {
-      // حفظ chatId في notes مع أي ملاحظات إضافية
       let notes = body.notes || '';
       if (body.chatId) {
         notes = notes ? `${notes} [chatId:${body.chatId}]` : `[chatId:${body.chatId}]`;
@@ -37,7 +136,6 @@ export async function POST(request: Request) {
         },
       });
 
-      // Create notification
       await db.notification.create({
         data: {
           type: 'booking',
@@ -62,26 +160,19 @@ export async function POST(request: Request) {
 
     // Handle different webhook types
     if (body.type === 'booking' || body.patientName) {
-      // Create or find patient
       let patient = await db.patient.findFirst({
-        where: {
-          phone: body.patientPhone,
-        },
+        where: { phone: body.patientPhone },
       });
 
       if (!patient && body.patientName && body.patientPhone) {
         patient = await db.patient.create({
-          data: {
-            name: body.patientName,
-            phone: body.patientPhone,
-          },
+          data: { name: body.patientName, phone: body.patientPhone },
         });
       }
 
-      // Create appointment if patient exists
       if (patient && body.appointmentTime) {
         const startTime = new Date(body.appointmentTime);
-        const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 min default
+        const endTime = new Date(startTime.getTime() + 30 * 60 * 1000);
 
         await db.appointment.create({
           data: {
@@ -95,7 +186,6 @@ export async function POST(request: Request) {
         });
       }
 
-      // Create notification
       await db.notification.create({
         data: {
           type: 'booking',
@@ -113,7 +203,6 @@ export async function POST(request: Request) {
     }
 
     if (body.type === 'reminder_response') {
-      // Handle reminder response (confirmation/cancellation)
       if (body.appointmentId && body.response) {
         await db.appointment.update({
           where: { id: body.appointmentId },
@@ -140,7 +229,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error processing webhook:', error);
     
-    // Log the error
     try {
       await db.automationLog.create({
         data: {
