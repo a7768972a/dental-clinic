@@ -1,8 +1,8 @@
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
-// Parse n8n array format: ["Name :value", "Phone Number :value", "Date :value", "Time :value", "Issue :value"]
-function parseArrayFormat(data: unknown): Record<string, string> {
+// Parse n8n array format or regular JSON
+function parseBookingData(data: unknown): Record<string, string> {
   const result: Record<string, string> = {};
 
   if (Array.isArray(data)) {
@@ -36,225 +36,97 @@ function parseArrayFormat(data: unknown): Record<string, string> {
   return result;
 }
 
-// This endpoint receives webhook data from n8n (WhatsApp/Telegram bookings)
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
-    // Try to parse array format from n8n
-    const parsed = parseArrayFormat(body);
-    const hasParsedData = Object.keys(parsed).length > 0;
-    
-    // If n8n sent array format, create pending appointment from it
-    if (hasParsedData) {
-      const { patientName, patientPhone, date, time, issue, serviceName } = parsed;
-      
-      if (!patientName || !patientPhone) {
-        return NextResponse.json({
-          success: false,
-          error: 'Missing required fields (patientName, patientPhone)',
-          received: parsed,
-        }, { status: 400 });
-      }
+    console.log('=== n8n webhook received ===', JSON.stringify(body));
 
-      // Build appointmentTime from date + time
-      let appointmentTime: Date;
-      if (date && time) {
-        appointmentTime = new Date(`${date}T${time}:00`);
-      } else if (date) {
-        appointmentTime = new Date(date);
-      } else {
-        appointmentTime = new Date();
-      }
+    const parsed = parseBookingData(body);
+    console.log('=== parsed data ===', JSON.stringify(parsed));
 
-      await db.pendingAppointment.create({
-        data: {
-          patientName: patientName,
-          patientPhone: patientPhone,
-          serviceName: serviceName || issue || null,
-          appointmentTime: appointmentTime,
-          notes: issue || null,
-          status: 'pending',
-        },
-      });
+    if (!parsed.patientName || !parsed.patientPhone) {
+      return NextResponse.json({
+        success: false,
+        error: 'Missing required fields (patientName, patientPhone)',
+        received: parsed,
+      }, { status: 400 });
+    }
 
-      // Log the incoming webhook
+    // Build appointmentTime
+    let appointmentTime: Date;
+    if (parsed.date && parsed.time) {
+      appointmentTime = new Date(`${parsed.date}T${parsed.time}:00`);
+    } else if (parsed.date) {
+      appointmentTime = new Date(parsed.date);
+    } else {
+      appointmentTime = new Date();
+    }
+
+    // Create pending appointment (main action)
+    const booking = await db.pendingAppointment.create({
+      data: {
+        patientName: parsed.patientName,
+        patientPhone: parsed.patientPhone,
+        serviceName: parsed.issue || null,
+        appointmentTime: appointmentTime,
+        notes: parsed.issue || null,
+        status: 'pending',
+      },
+    });
+
+    console.log('=== booking created ===', booking.id);
+
+    // Try to log (non-critical - don't fail if table doesn't exist)
+    try {
       await db.automationLog.create({
         data: {
           type: 'booking',
           source: 'n8n',
           payload: JSON.stringify(body),
           status: 'success',
-          message: `Pending appointment created for ${patientName}`,
+          message: `Pending appointment created for ${parsed.patientName}`,
         },
       });
+    } catch (logErr) {
+      console.log('automationLog skipped:', logErr instanceof Error ? logErr.message : 'unknown');
+    }
 
-      // Create notification
+    // Try to create notification (non-critical)
+    try {
       await db.notification.create({
         data: {
           type: 'booking',
           title: 'حجز جديد بانتظار الموافقة',
-          message: `حجز جديد: ${patientName} - ${date || ''} ${time || ''}`,
+          message: `حجز جديد: ${parsed.patientName} - ${parsed.date || ''} ${parsed.time || ''}`,
           source: 'n8n',
           data: JSON.stringify(parsed),
         },
       });
-
-      return NextResponse.json({
-        success: true,
-        message: 'Booking received and pending approval',
-      });
+    } catch (notifErr) {
+      console.log('notification skipped:', notifErr instanceof Error ? notifErr.message : 'unknown');
     }
 
-    // Log the incoming webhook
-    await db.automationLog.create({
-      data: {
-        type: 'booking',
-        source: body.source || 'n8n',
-        payload: JSON.stringify(body),
-        status: 'success',
-        message: 'Webhook received',
-      },
-    });
-
-    // Handle WhatsApp/Telegram pending booking (needs approval)
-    if (body.type === 'whatsapp_booking') {
-      let notes = body.notes || '';
-      if (body.chatId) {
-        notes = notes ? `${notes} [chatId:${body.chatId}]` : `[chatId:${body.chatId}]`;
-      }
-
-      await db.pendingAppointment.create({
-        data: {
-          patientName: body.patientName || 'غير معروف',
-          patientPhone: body.patientPhone || '',
-          serviceName: body.serviceName || null,
-          appointmentTime: new Date(body.appointmentTime),
-          sourceMessageId: body.sourceMessageId || null,
-          notes: notes || null,
-          status: 'pending',
-        },
-      });
-
-      await db.notification.create({
-        data: {
-          type: 'booking',
-          title: 'حجز واتساب بانتظار الموافقة',
-          message: `حجز جديد بانتظار الموافقة: ${body.patientName || 'غير معروف'} - ${body.serviceName || 'خدمة عامة'}`,
-          source: body.source || 'whatsapp',
-          data: JSON.stringify({
-            patientName: body.patientName,
-            patientPhone: body.patientPhone,
-            serviceName: body.serviceName,
-            appointmentTime: body.appointmentTime,
-            chatId: body.chatId || null,
-          }),
-        },
-      });
-
-      return NextResponse.json({
-        success: true,
-        message: 'WhatsApp booking received and pending approval',
-      });
-    }
-
-    // Handle different webhook types
-    if (body.type === 'booking' || body.patientName) {
-      let patient = await db.patient.findFirst({
-        where: { phone: body.patientPhone },
-      });
-
-      if (!patient && body.patientName && body.patientPhone) {
-        patient = await db.patient.create({
-          data: { name: body.patientName, phone: body.patientPhone },
-        });
-      }
-
-      if (patient && body.appointmentTime) {
-        const startTime = new Date(body.appointmentTime);
-        const endTime = new Date(startTime.getTime() + 30 * 60 * 1000);
-
-        await db.appointment.create({
-          data: {
-            patientId: patient.id,
-            title: body.serviceName || `موعد ${patient.name}`,
-            startTime,
-            endTime,
-            status: 'scheduled',
-            notes: body.notes || 'محجوز عبر الواتساب',
-          },
-        });
-      }
-
-      await db.notification.create({
-        data: {
-          type: 'booking',
-          title: 'حجز جديد من الواتساب',
-          message: `حجز جديد للمريض ${body.patientName || 'غير معروف'} - ${body.serviceName || 'خدمة عامة'}`,
-          source: 'whatsapp',
-          data: JSON.stringify({
-            patientName: body.patientName,
-            patientPhone: body.patientPhone,
-            serviceName: body.serviceName,
-            appointmentTime: body.appointmentTime,
-          }),
-        },
-      });
-    }
-
-    if (body.type === 'reminder_response') {
-      if (body.appointmentId && body.response) {
-        await db.appointment.update({
-          where: { id: body.appointmentId },
-          data: {
-            status: body.response === 'confirmed' ? 'confirmed' : 'cancelled',
-          },
-        });
-
-        await db.notification.create({
-          data: {
-            type: 'reminder',
-            title: 'رد على التذكير',
-            message: `المريض ${body.patientName || ''} قام بـ ${body.response === 'confirmed' ? 'تأكيد' : 'إلغاء'} الموعد`,
-            source: 'whatsapp',
-          },
-        });
-      }
-    }
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Webhook processed successfully' 
+    return NextResponse.json({
+      success: true,
+      message: 'Booking received and pending approval',
+      bookingId: booking.id,
     });
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('=== WEBHOOK ERROR ===', errorMsg);
     
-    try {
-      await db.automationLog.create({
-        data: {
-          type: 'booking',
-          source: 'n8n',
-          payload: '{}',
-          status: 'failed',
-          message: error instanceof Error ? error.message : 'Unknown error',
-        },
-      });
-    } catch (logError) {
-      console.error('Error logging webhook error:', logError);
-    }
-
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Error processing webhook' 
+    return NextResponse.json({
+      success: false,
+      error: 'Error processing webhook',
+      details: errorMsg,
     }, { status: 500 });
   }
 }
 
-// GET endpoint for testing
 export async function GET() {
-  return NextResponse.json({ 
-    status: 'ok', 
+  return NextResponse.json({
+    status: 'ok',
     message: 'n8n webhook endpoint is active',
-    timestamp: new Date().toISOString() 
+    timestamp: new Date().toISOString(),
   });
 }
