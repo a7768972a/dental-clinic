@@ -30,7 +30,6 @@ function parseBookingData(data: unknown): Record<string, string> {
     if (obj.time) result.time = String(obj.time);
     if (obj.notes) result.issue = String(obj.notes);
     if (obj.issue) result.issue = String(obj.issue);
-    if (obj.serviceName) result.serviceName = String(obj.serviceName);
   }
 
   return result;
@@ -38,58 +37,39 @@ function parseBookingData(data: unknown): Record<string, string> {
 
 export async function POST(request: Request) {
   try {
-    // Try to read body JSON
-    let body: unknown = null;
-    try {
-      body = await request.json();
-    } catch {
-      body = null;
-    }
-
-    // If body is empty, try reading from URL search params (qs)
     let parsed: Record<string, string> = {};
-    if (body && (Array.isArray(body) || (typeof body === 'object' && body !== null))) {
-      parsed = parseBookingData(body);
+
+    // 1. Try JSON body first
+    try {
+      const body = await request.json();
+      if (body && (Array.isArray(body) || typeof body === 'object')) {
+        parsed = parseBookingData(body);
+      }
+    } catch {}
+
+    // 2. If still missing fields, try query parameters (n8n qs)
+    if (!parsed.patientName || !parsed.patientPhone) {
+      const { searchParams } = new URL(request.url);
+      const qsName = searchParams.get('patientName');
+      const qsPhone = searchParams.get('patientPhone');
+      const qsDate = searchParams.get('date');
+      const qsTime = searchParams.get('time');
+      const qsIssue = searchParams.get('issue');
+
+      if (qsName && !parsed.patientName) parsed.patientName = qsName;
+      if (qsPhone && !parsed.patientPhone) parsed.patientPhone = qsPhone;
+      if (qsDate && !parsed.date) parsed.date = qsDate;
+      if (qsTime && !parsed.time) parsed.time = qsTime;
+      if (qsIssue && !parsed.issue) parsed.issue = qsIssue;
     }
 
-    // Fallback: check query params (when n8n sends data in qs instead of body)
-    if (!parsed.patientName && !parsed.patientPhone) {
-      const url = new URL(request.url);
-      const qs = url.searchParams;
-      const allParams: string[] = [];
-      qs.forEach((val, key) => allParams.push(`${key} :${val}`));
-      // Also check if qs has array-like values
-      for (const [key, val] of qs.entries()) {
-        if (key.includes('name')) parsed.patientName = val;
-        else if (key.includes('phone') || key.includes('number')) parsed.patientPhone = val;
-        else if (key.includes('date')) parsed.date = val;
-        else if (key.includes('time')) parsed.time = val;
-        else if (key.includes('issue') || key.includes('notes')) parsed.issue = val;
-      }
-      // If still nothing, try parsing array from qs values
-      if (!parsed.patientName && allParams.length === 0) {
-        // Try to get raw query string
-        const rawQs = url.search;
-        if (rawQs) {
-          // n8n sometimes sends: ?Name :value&Phone Number :value
-          const pairs = rawQs.slice(1).split('&');
-          const items = pairs.map(p => {
-            const eq = p.indexOf('=');
-            return eq > -1 ? p.slice(eq + 1) : p;
-          });
-          parsed = parseBookingData(items);
-        }
-      }
-    }
-
-    console.log('=== n8n webhook === parsed:', JSON.stringify(parsed));
+    console.log('=== n8n webhook parsed ===', JSON.stringify(parsed));
 
     if (!parsed.patientName || !parsed.patientPhone) {
       return NextResponse.json({
         success: false,
         error: 'Missing required fields (patientName, patientPhone)',
         received: parsed,
-        hint: 'Send JSON body: {"patientName":"name","patientPhone":"phone","date":"2025-01-15","time":"10:00","issue":"notes"}',
       }, { status: 400 });
     }
 
