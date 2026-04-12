@@ -1,10 +1,8 @@
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
-// Parse n8n array format or regular JSON
 function parseBookingData(data: unknown): Record<string, string> {
   const result: Record<string, string> = {};
-
   if (Array.isArray(data)) {
     for (const item of data) {
       const str = String(item);
@@ -31,43 +29,73 @@ function parseBookingData(data: unknown): Record<string, string> {
     if (obj.notes) result.issue = String(obj.notes);
     if (obj.issue) result.issue = String(obj.issue);
   }
-
   return result;
 }
 
-// Convert various date formats to valid Date
-function parseDate(dateStr: string, timeStr?: string): Date {
-  // Try YYYY-MM-DD
-  let d = new Date(dateStr);
-  if (!isNaN(d.getTime())) return timeStr ? new Date(`${dateStr}T${timeStr}:00`) : d;
+function buildDate(dateStr: string, timeStr: string): Date {
+  const now = new Date();
 
-  // Try DD/MM/YYYY or DD-MM-YYYY
-  const parts = dateStr.split(/[\/\-\.]/);
+  // Parse time
+  let hours = 0;
+  let minutes = 0;
+  if (timeStr) {
+    const timeClean = timeStr.trim();
+    const timeParts = timeClean.split(':');
+    hours = parseInt(timeParts[0]) || 0;
+    minutes = parseInt(timeParts[1]) || 0;
+  }
+
+  // Parse date
+  if (!dateStr || !dateStr.trim()) {
+    now.setHours(hours, minutes, 0, 0);
+    return now;
+  }
+
+  const dateClean = dateStr.trim();
+  const parts = dateClean.split(/[\/\-\.]/);
+
   if (parts.length === 3) {
-    const day = parseInt(parts[0]);
-    const month = parseInt(parts[1]) - 1;
-    const year = parseInt(parts[2]);
-    if (year > 100) {
-      d = new Date(year, month, day);
-      if (!isNaN(d.getTime())) {
-        if (timeStr) {
-          const [h, m] = timeStr.split(':').map(Number);
-          d.setHours(h || 0, m || 0, 0, 0);
-        }
-        return d;
-      }
+    let day: number;
+    let month: number;
+    let year: number;
+
+    // Check if first part is year (YYYY-MM-DD)
+    if (parseInt(parts[0]) > 100) {
+      year = parseInt(parts[0]);
+      month = parseInt(parts[1]) - 1;
+      day = parseInt(parts[2]);
+    } else {
+      // DD/MM/YYYY
+      day = parseInt(parts[0]);
+      month = parseInt(parts[1]) - 1;
+      year = parseInt(parts[2]);
+      // If year looks like it was swapped (e.g., year < 100 or unreasonably large)
+      if (year < 100) year += 2000;
+    }
+
+    if (day > 0 && day <= 31 && month >= 0 && month <= 11 && year >= 2020) {
+      const d = new Date(year, month, day, hours, minutes, 0, 0);
+      if (!isNaN(d.getTime())) return d;
     }
   }
 
-  // Fallback
-  return new Date();
+  // Try standard parsing
+  const d = new Date(dateClean);
+  if (!isNaN(d.getTime())) {
+    d.setHours(hours, minutes, 0, 0);
+    return d;
+  }
+
+  // Fallback to now
+  now.setHours(hours, minutes, 0, 0);
+  return now;
 }
 
 export async function POST(request: Request) {
   try {
     let parsed: Record<string, string> = {};
 
-    // 1. Try JSON body first
+    // 1. Try JSON body
     try {
       const body = await request.json();
       if (body && (Array.isArray(body) || typeof body === 'object')) {
@@ -75,91 +103,47 @@ export async function POST(request: Request) {
       }
     } catch {}
 
-    // 2. If still missing fields, try query parameters
+    // 2. Try query parameters
     if (!parsed.patientName || !parsed.patientPhone) {
       const { searchParams } = new URL(request.url);
-      const qsName = searchParams.get('patientName');
-      const qsPhone = searchParams.get('patientPhone');
-      const qsDate = searchParams.get('date');
-      const qsTime = searchParams.get('time');
-      const qsIssue = searchParams.get('issue');
-
-      if (qsName && !parsed.patientName) parsed.patientName = qsName;
-      if (qsPhone && !parsed.patientPhone) parsed.patientPhone = qsPhone;
-      if (qsDate && !parsed.date) parsed.date = qsDate;
-      if (qsTime && !parsed.time) parsed.time = qsTime;
-      if (qsIssue && !parsed.issue) parsed.issue = qsIssue;
+      if (!parsed.patientName) parsed.patientName = searchParams.get('patientName') || '';
+      if (!parsed.patientPhone) parsed.patientPhone = searchParams.get('patientPhone') || '';
+      if (!parsed.date) parsed.date = searchParams.get('date') || '';
+      if (!parsed.time) parsed.time = searchParams.get('time') || '';
+      if (!parsed.issue) parsed.issue = searchParams.get('issue') || '';
     }
 
     if (!parsed.patientName || !parsed.patientPhone) {
       return NextResponse.json({
         success: false,
-        error: 'Missing required fields (patientName, patientPhone)',
+        error: 'Missing required fields',
         received: parsed,
       }, { status: 400 });
     }
 
-    // Build appointmentTime with flexible date parsing
-    const appointmentTime = parseDate(parsed.date || '', parsed.time);
+    const appointmentTime = buildDate(parsed.date || '', parsed.time || '');
 
-    // Create pending appointment
     const booking = await db.pendingAppointment.create({
       data: {
         patientName: parsed.patientName,
         patientPhone: parsed.patientPhone,
         serviceName: parsed.issue || null,
-        appointmentTime: appointmentTime,
+        appointmentTime,
         notes: parsed.issue || null,
         status: 'pending',
       },
     });
 
-    // Try to log (non-critical)
-    try {
-      await db.automationLog.create({
-        data: {
-          type: 'booking',
-          source: 'n8n',
-          payload: JSON.stringify(parsed),
-          status: 'success',
-          message: `Pending appointment created for ${parsed.patientName}`,
-        },
-      });
-    } catch {}
+    try { await db.automationLog.create({ data: { type: 'booking', source: 'n8n', payload: JSON.stringify(parsed), status: 'success', message: `Booking for ${parsed.patientName}` } }); } catch {}
+    try { await db.notification.create({ data: { type: 'booking', title: 'حجز جديد بانتظار الموافقة', message: `حجز جديد: ${parsed.patientName} - ${parsed.date || ''} ${parsed.time || ''}`, source: 'n8n', data: JSON.stringify(parsed) } }); } catch {}
 
-    // Try to create notification (non-critical)
-    try {
-      await db.notification.create({
-        data: {
-          type: 'booking',
-          title: 'حجز جديد بانتظار الموافقة',
-          message: `حجز جديد: ${parsed.patientName} - ${parsed.date || ''} ${parsed.time || ''}`,
-          source: 'n8n',
-          data: JSON.stringify(parsed),
-        },
-      });
-    } catch {}
-
-    return NextResponse.json({
-      success: true,
-      message: 'Booking received and pending approval',
-      bookingId: booking.id,
-    });
+    return NextResponse.json({ success: true, message: 'Booking received', bookingId: booking.id });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    console.error('=== WEBHOOK ERROR ===', errorMsg);
-    return NextResponse.json({
-      success: false,
-      error: 'Error processing webhook',
-      details: errorMsg,
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Error processing webhook', details: errorMsg }, { status: 500 });
   }
 }
 
 export async function GET() {
-  return NextResponse.json({
-    status: 'ok',
-    message: 'n8n webhook endpoint is active',
-    timestamp: new Date().toISOString(),
-  });
+  return NextResponse.json({ status: 'ok', message: 'n8n webhook active' });
 }
