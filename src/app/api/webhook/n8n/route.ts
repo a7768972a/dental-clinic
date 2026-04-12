@@ -35,6 +35,34 @@ function parseBookingData(data: unknown): Record<string, string> {
   return result;
 }
 
+// Convert various date formats to valid Date
+function parseDate(dateStr: string, timeStr?: string): Date {
+  // Try YYYY-MM-DD
+  let d = new Date(dateStr);
+  if (!isNaN(d.getTime())) return timeStr ? new Date(`${dateStr}T${timeStr}:00`) : d;
+
+  // Try DD/MM/YYYY or DD-MM-YYYY
+  const parts = dateStr.split(/[\/\-\.]/);
+  if (parts.length === 3) {
+    const day = parseInt(parts[0]);
+    const month = parseInt(parts[1]) - 1;
+    const year = parseInt(parts[2]);
+    if (year > 100) {
+      d = new Date(year, month, day);
+      if (!isNaN(d.getTime())) {
+        if (timeStr) {
+          const [h, m] = timeStr.split(':').map(Number);
+          d.setHours(h || 0, m || 0, 0, 0);
+        }
+        return d;
+      }
+    }
+  }
+
+  // Fallback
+  return new Date();
+}
+
 export async function POST(request: Request) {
   try {
     let parsed: Record<string, string> = {};
@@ -47,7 +75,7 @@ export async function POST(request: Request) {
       }
     } catch {}
 
-    // 2. If still missing fields, try query parameters (n8n qs)
+    // 2. If still missing fields, try query parameters
     if (!parsed.patientName || !parsed.patientPhone) {
       const { searchParams } = new URL(request.url);
       const qsName = searchParams.get('patientName');
@@ -63,8 +91,6 @@ export async function POST(request: Request) {
       if (qsIssue && !parsed.issue) parsed.issue = qsIssue;
     }
 
-    console.log('=== n8n webhook parsed ===', JSON.stringify(parsed));
-
     if (!parsed.patientName || !parsed.patientPhone) {
       return NextResponse.json({
         success: false,
@@ -73,15 +99,8 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // Build appointmentTime
-    let appointmentTime: Date;
-    if (parsed.date && parsed.time) {
-      appointmentTime = new Date(`${parsed.date}T${parsed.time}:00`);
-    } else if (parsed.date) {
-      appointmentTime = new Date(parsed.date);
-    } else {
-      appointmentTime = new Date();
-    }
+    // Build appointmentTime with flexible date parsing
+    const appointmentTime = parseDate(parsed.date || '', parsed.time);
 
     // Create pending appointment
     const booking = await db.pendingAppointment.create({
