@@ -38,17 +38,58 @@ function parseBookingData(data: unknown): Record<string, string> {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    console.log('=== n8n webhook received ===', JSON.stringify(body));
+    // Try to read body JSON
+    let body: unknown = null;
+    try {
+      body = await request.json();
+    } catch {
+      body = null;
+    }
 
-    const parsed = parseBookingData(body);
-    console.log('=== parsed data ===', JSON.stringify(parsed));
+    // If body is empty, try reading from URL search params (qs)
+    let parsed: Record<string, string> = {};
+    if (body && (Array.isArray(body) || (typeof body === 'object' && body !== null))) {
+      parsed = parseBookingData(body);
+    }
+
+    // Fallback: check query params (when n8n sends data in qs instead of body)
+    if (!parsed.patientName && !parsed.patientPhone) {
+      const url = new URL(request.url);
+      const qs = url.searchParams;
+      const allParams: string[] = [];
+      qs.forEach((val, key) => allParams.push(`${key} :${val}`));
+      // Also check if qs has array-like values
+      for (const [key, val] of qs.entries()) {
+        if (key.includes('name')) parsed.patientName = val;
+        else if (key.includes('phone') || key.includes('number')) parsed.patientPhone = val;
+        else if (key.includes('date')) parsed.date = val;
+        else if (key.includes('time')) parsed.time = val;
+        else if (key.includes('issue') || key.includes('notes')) parsed.issue = val;
+      }
+      // If still nothing, try parsing array from qs values
+      if (!parsed.patientName && allParams.length === 0) {
+        // Try to get raw query string
+        const rawQs = url.search;
+        if (rawQs) {
+          // n8n sometimes sends: ?Name :value&Phone Number :value
+          const pairs = rawQs.slice(1).split('&');
+          const items = pairs.map(p => {
+            const eq = p.indexOf('=');
+            return eq > -1 ? p.slice(eq + 1) : p;
+          });
+          parsed = parseBookingData(items);
+        }
+      }
+    }
+
+    console.log('=== n8n webhook === parsed:', JSON.stringify(parsed));
 
     if (!parsed.patientName || !parsed.patientPhone) {
       return NextResponse.json({
         success: false,
         error: 'Missing required fields (patientName, patientPhone)',
         received: parsed,
+        hint: 'Send JSON body: {"patientName":"name","patientPhone":"phone","date":"2025-01-15","time":"10:00","issue":"notes"}',
       }, { status: 400 });
     }
 
@@ -62,7 +103,7 @@ export async function POST(request: Request) {
       appointmentTime = new Date();
     }
 
-    // Create pending appointment (main action)
+    // Create pending appointment
     const booking = await db.pendingAppointment.create({
       data: {
         patientName: parsed.patientName,
@@ -74,22 +115,18 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log('=== booking created ===', booking.id);
-
-    // Try to log (non-critical - don't fail if table doesn't exist)
+    // Try to log (non-critical)
     try {
       await db.automationLog.create({
         data: {
           type: 'booking',
           source: 'n8n',
-          payload: JSON.stringify(body),
+          payload: JSON.stringify(parsed),
           status: 'success',
           message: `Pending appointment created for ${parsed.patientName}`,
         },
       });
-    } catch (logErr) {
-      console.log('automationLog skipped:', logErr instanceof Error ? logErr.message : 'unknown');
-    }
+    } catch {}
 
     // Try to create notification (non-critical)
     try {
@@ -102,9 +139,7 @@ export async function POST(request: Request) {
           data: JSON.stringify(parsed),
         },
       });
-    } catch (notifErr) {
-      console.log('notification skipped:', notifErr instanceof Error ? notifErr.message : 'unknown');
-    }
+    } catch {}
 
     return NextResponse.json({
       success: true,
@@ -114,7 +149,6 @@ export async function POST(request: Request) {
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     console.error('=== WEBHOOK ERROR ===', errorMsg);
-    
     return NextResponse.json({
       success: false,
       error: 'Error processing webhook',
